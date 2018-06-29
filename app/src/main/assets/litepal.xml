@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <litepal>
     <dbname value="weather_data"/>
-    <version value="10"/>
+    <version value="12"/>
     <list>
         <mapping class="com.elapse.easyweather.db.Province"/>
         <mapping class="com.elapse.easyweather.db.City"/>

@@ -1,6 +1,7 @@
 package com.elapse.easyweather;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -30,6 +31,7 @@ import com.elapse.easyweather.db.County;
 import com.elapse.easyweather.db.Province;
 import com.elapse.easyweather.gson.Forecast;
 import com.elapse.easyweather.gson.Weather;
+import com.elapse.easyweather.service.MyService;
 import com.elapse.easyweather.utils.HttpUtil;
 import com.elapse.easyweather.utils.Utility;
 
@@ -181,6 +183,8 @@ public class Main2Activity extends AppCompatActivity {
             }
         }else{
             //query full info from server
+            Intent service_intent = new Intent(Main2Activity.this, MyService.class);
+            startService(service_intent);
             Log.d(TAG, "queryWeather: query full info from server");
             HttpUtil.sendOkHttpRequest(address, new Callback() {
                 @Override
@@ -471,6 +475,17 @@ public class Main2Activity extends AppCompatActivity {
             Log.d(TAG, "onReceiveLocation: "+bundle.toString());
             message.setData(bundle);
             mHandler.sendMessage(message);
+        }
+    }
+
+    public void otherCity(View view){
+        switch (view.getId()){
+            case R.id.other_city:
+                Intent intent = new Intent(Main2Activity.this,search_Activity.class);
+                startActivity(intent);
+                break;
+            default:
+                break;
         }
     }
 }
