@@ -25,10 +25,8 @@ import okhttp3.Callback;
 import okhttp3.Response;
 
 public class MyService extends Service {
-    private String address = "http://guolin.tech/api/china";
+
     ExecutorService executor ;
-    public MyService() {
-    }
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -38,7 +36,13 @@ public class MyService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        queryFullInfoAndSave(address);
+        final String address = "http://guolin.tech/api/china";
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                queryFullInfoAndSave(address);
+            }
+        }).start();
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -46,7 +50,7 @@ public class MyService extends Service {
         HttpUtil.sendOkHttpRequest(address, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-
+                e.printStackTrace();
             }
 
             @Override
@@ -88,10 +92,10 @@ public class MyService extends Service {
                                                         String response_county = response.body().string();
                                                         Log.d("TAGGG", "onResponse: "+response_county);
                                                         Utility.handleCountyResponse(response_county,cityId);
-                                                        if (j == cityList.size()-1){
-                                                            stopSelf();
-                                                            Log.d("TAGGG", "onResponse: query full info complete");
-                                                        }
+//                                                        if (j == cityList.size()-1){
+//                                                            stopSelf();
+//                                                            Log.d("TAGGG", "onResponse: query full info complete");
+//                                                        }
                                                     }
                                                 });
                                             }
@@ -104,6 +108,8 @@ public class MyService extends Service {
                     };
                     executor.execute(command);
                 }
+                executor.shutdown();
+                stopSelf();
             }
         });
 

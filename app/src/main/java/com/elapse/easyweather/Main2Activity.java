@@ -31,6 +31,7 @@ import com.elapse.easyweather.db.County;
 import com.elapse.easyweather.db.Province;
 import com.elapse.easyweather.gson.Forecast;
 import com.elapse.easyweather.gson.Weather;
+import com.elapse.easyweather.service.MyService;
 import com.elapse.easyweather.service.UpdateWeatherService;
 import com.elapse.easyweather.utils.HttpUtil;
 import com.elapse.easyweather.utils.Utility;
@@ -125,10 +126,13 @@ public class Main2Activity extends AppCompatActivity {
             loadBingPic();
         }
         String weatherString = prefs.getString("weather",null);
+        queryCounty(location[2]);
         if (weatherString != null){
             Weather weather = Utility.handleWeatherResponse(weatherString);
             showWeatherInfo(weather);
-        }else {
+        }else if (selectedCounty != null){
+            requestWeather(selectedCounty.getWeatherId());
+        } else {
             mHandler = new Handler(new Handler.Callback() {
                 @Override
                 public boolean handleMessage(Message msg) {
@@ -148,7 +152,6 @@ public class Main2Activity extends AppCompatActivity {
                         case GET_COUNTY:
                             requestWeather(selectedCounty.getWeatherId());
                             break;
-
                     }
                     return true;
                 }
@@ -558,6 +561,8 @@ public class Main2Activity extends AppCompatActivity {
 
         Intent intent = new Intent(this,UpdateWeatherService.class);
         startService(intent);
+        Intent intent2 = new Intent(this, MyService.class);
+        startService(intent2);
     }
 
     @Override
