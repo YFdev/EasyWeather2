@@ -31,15 +31,15 @@
         android:theme="@style/AppTheme">
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
-            android:value="CoH6P1McERMwNRjoQF7dRYblGnyFePx7"></meta-data>
+            android:value="CoH6P1McERMwNRjoQF7dRYblGnyFePx7" />
 
-        <activity android:name=".MainActivity"></activity>
+        <activity android:name=".MainActivity" />
         <activity android:name=".search_Activity" />
 
         <service
             android:name="com.baidu.location.f"
             android:enabled="true"
-            android:process=":remote"></service>
+            android:process=":remote" />
 
         <activity android:name=".Main2Activity">
             <intent-filter>
@@ -51,6 +51,10 @@
 
         <service
             android:name=".service.MyService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".service.UpdateWeatherService"
             android:enabled="true"
             android:exported="true"></service>
     </application>

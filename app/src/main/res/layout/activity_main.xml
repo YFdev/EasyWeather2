@@ -6,6 +6,11 @@
     android:layout_height="match_parent"
     android:background="@color/colorPrimary"
     tools:context="com.elapse.easyweather.MainActivity">
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/bing_pic"
+        android:scaleType="centerCrop"/>
 
     <ScrollView
         android:id="@+id/weather_layout"

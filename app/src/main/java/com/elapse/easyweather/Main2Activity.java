@@ -2,9 +2,9 @@ package com.elapse.easyweather;
 
 import android.Manifest;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
@@ -12,11 +12,10 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -26,18 +25,18 @@ import com.baidu.location.BDAbstractLocationListener;
 import com.baidu.location.BDLocation;
 import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
+import com.bumptech.glide.Glide;
 import com.elapse.easyweather.db.City;
 import com.elapse.easyweather.db.County;
 import com.elapse.easyweather.db.Province;
 import com.elapse.easyweather.gson.Forecast;
 import com.elapse.easyweather.gson.Weather;
-import com.elapse.easyweather.service.MyService;
+import com.elapse.easyweather.service.UpdateWeatherService;
 import com.elapse.easyweather.utils.HttpUtil;
 import com.elapse.easyweather.utils.Utility;
 
 import org.litepal.crud.DataSupport;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,9 +54,20 @@ public class Main2Activity extends AppCompatActivity {
     private TextView title_city,titleUpdateTime,degreeText,weatherInfoText,
             aqiText,pm25Text,comfortText,carWashText,sportText;
     private LinearLayout forecastLayout;
+    private ImageView bingPic;
 
     Handler mHandler;
+    Message message = new Message();
     SharedPreferences prefs;
+
+    private String[] location = new String[3];
+    private Province selectedProvince;
+    private City selectedCity;
+    private County selectedCounty;
+    public static final int GET_LOCATION = 0;
+    public static final int GET_PROVINCE = 1;
+    public static final int GET_CITY = 2;
+    public static final int GET_COUNTY = 3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,6 +78,30 @@ public class Main2Activity extends AppCompatActivity {
         requestPermission();
         initView();
 
+    }
+
+    private void loadBingPic() {
+        String requestBingPic = "http://guolin.tech/api/bing_pic";
+        HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String responseText = response.body().string();
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString("bing_pic",responseText);
+                editor.apply();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Glide.with(Main2Activity.this).load(responseText).into(bingPic);
+                    }
+                });
+            }
+        });
     }
 
     private void initView() {
@@ -82,8 +116,14 @@ public class Main2Activity extends AppCompatActivity {
         comfortText = findViewById(R.id.comfort_text);
         carWashText = findViewById(R.id.car_wash_text);
         sportText = findViewById(R.id.sport_text);
-
+        bingPic = findViewById(R.id.bing_pic);
         prefs = PreferenceManager.getDefaultSharedPreferences(Main2Activity.this);
+        String bing_pic = prefs.getString("bing_pic",null);
+        if (bing_pic != null){
+            Glide.with(this).load(bing_pic).into(bingPic);
+        }else{
+            loadBingPic();
+        }
         String weatherString = prefs.getString("weather",null);
         if (weatherString != null){
             Weather weather = Utility.handleWeatherResponse(weatherString);
@@ -92,226 +132,319 @@ public class Main2Activity extends AppCompatActivity {
             mHandler = new Handler(new Handler.Callback() {
                 @Override
                 public boolean handleMessage(Message msg) {
-                    Bundle b = msg.getData();
-        //                    String weatherId = (String) b.get("weather_id");
-        //                    requestWeather(weatherId);
-                    String provinceName = b.getString("cur_province","广东");
-                    String cityName = b.getString("cur_city","深圳");
-                    String countyName = b.getString("cur_county","深圳");
-//                    title_city.setText(countyName);
-                    Log.d(TAG, "handleMessage: "+provinceName+" "+cityName+" "+countyName);
-                    queryWeather(provinceName,cityName,countyName);
-                    Log.d(TAG, "handleMessage: query weather done");
+                    switch (msg.what){
+                        case GET_LOCATION:
+                            String provinceName = location[0];
+                            queryProvince(provinceName);
+                            break;
+                        case GET_PROVINCE:
+                            String cityName = location[1];
+                            queryCity(cityName);
+                            break;
+                        case GET_CITY:
+                            String countyName = location[2];
+                            queryCounty(countyName);
+                            break;
+                        case GET_COUNTY:
+                            requestWeather(selectedCounty.getWeatherId());
+                            break;
+
+                    }
                     return true;
                 }
             });
         }
     }
 
-   public void queryWeather(final String provinceName, final String cityName, final String countyName){
-        final int provinceId = queryProvinceIdFromLocal(provinceName);
-        Log.d(TAG, "queryWeather: start query"+provinceId);
-        if (provinceId != -1){
-            //check if cityId is invalid
-            final int cityId = queryCityIdFromLocal(provinceId,cityName);
-            if (cityId != -1){
-                //check if county is null
-                String weatherId = queryWeatherIdFromLocal(cityId,countyName);
-                if (!TextUtils.isEmpty(weatherId)){
-                    //requestWeather
-                    requestWeather(weatherId);
-                }else{
-                    //query weather info from server
-                    HttpUtil.sendOkHttpRequest(address + "/" + provinceId + "/" + cityId,
-                            new Callback() {
-                        @Override
-                        public void onFailure(Call call, IOException e) {
-                            Log.d(TAG, "onFailure: request county info");
-                        }
-
-                        @Override
-                        public void onResponse(Call call, Response response) throws IOException {
-                            String countyText = response.body().string();
-                            Utility.handleCountyResponse(countyText,cityId);
-                            String weatherId = queryWeatherIdFromLocal(cityId,countyName);
-                            if (!TextUtils.isEmpty(weatherId)){
-                                //requestWeather
-                                requestWeather(weatherId);
-                             }
-                        }
-                    });
-                }
-            }else {
-                //query city info from server
-                Log.d(TAG, "queryWeather: query city info from server");
-                HttpUtil.sendOkHttpRequest(address + "/" + provinceId, new Callback() {
-                    @Override
-                    public void onFailure(Call call, IOException e) {
-                        Log.d(TAG, "onFailure: query city info");
-                    }
-
-                    @Override
-                    public void onResponse(Call call, Response response) throws IOException {
-                        String cityText = response.body().string();
-                        Utility.handleCityResponse(cityText,provinceId);
-                        String weatherId = queryWeatherIdFromLocal(cityId,countyName);
-                        if (!TextUtils.isEmpty(weatherId)){
-                            //requestWeather
-                            requestWeather(weatherId);
-                        }else{
-                            //query weather info from server
-                            HttpUtil.sendOkHttpRequest(address + "/" + provinceId + "/" + cityId, new Callback() {
-                                @Override
-                                public void onFailure(Call call, IOException e) {
-                                    Log.d(TAG, "onFailure: request county info");
-                                }
-
-                                @Override
-                                public void onResponse(Call call, Response response) throws IOException {
-                                    String countyText = response.body().string();
-                                    Utility.handleCountyResponse(countyText,cityId);
-                                    String weatherId = queryWeatherIdFromLocal(cityId,countyName);
-                                    if (!TextUtils.isEmpty(weatherId)){
-                                        //requestWeather
-                                        requestWeather(weatherId);
-                                    }
-                                }
-                            });
-                        }
-                    }
-                });
-            }
-        }else{
-            //query full info from server
-            Intent service_intent = new Intent(Main2Activity.this, MyService.class);
-            startService(service_intent);
-            Log.d(TAG, "queryWeather: query full info from server");
-            HttpUtil.sendOkHttpRequest(address, new Callback() {
-                @Override
-                public void onFailure(Call call, IOException e) {
-                    Log.d(TAG, "onFailure: query province info");
-                }
-
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                    String provinceText = response.body().string();
-                    Utility.handleProvinceResponse(provinceText);
-                    Log.d(TAG, "onResponse:194 "+provinceText);
-                    final int pro_id = queryProvinceIdFromLocal(provinceName);
-                    final int cityId = queryCityIdFromLocal(pro_id,cityName);
-                    Log.d(TAG, "onResponse: 196 "+cityId);
-                    if (cityId != -1){
-                        //check if county is null
-                        String weatherId = queryWeatherIdFromLocal(cityId,countyName);
-                        if (!TextUtils.isEmpty(weatherId)){
-                            //requestWeather
-                            requestWeather(weatherId);
-                        }else{
-                            //query weather info from server
-                            Log.d(TAG, "queryWeather: query city info from server");
-                            HttpUtil.sendOkHttpRequest(address + "/" + provinceId + "/" + cityId, new Callback() {
-                                @Override
-                                public void onFailure(Call call, IOException e) {
-                                    Log.d(TAG, "onFailure: request county info");
-                                }
-
-                                @Override
-                                public void onResponse(Call call, Response response) throws IOException {
-                                    String countyText = response.body().string();
-                                    Log.d(TAG, "onResponse: "+countyText);
-                                    Utility.handleCountyResponse(countyText,cityId);
-                                    String weatherId = queryWeatherIdFromLocal(cityId,countyName);
-                                    if (!TextUtils.isEmpty(weatherId)){
-                                        //requestWeather
-                                        requestWeather(weatherId);
-                                    }
-                                }
-                            });
-                        }
-                    }else {
-                        //query city info from server
-                        Log.d(TAG, "onResponse: 227 +query city info from server");
-                        HttpUtil.sendOkHttpRequest(address + "/" + pro_id, new Callback() {
-                            @Override
-                            public void onFailure(Call call, IOException e) {
-                                Log.d(TAG, "onFailure: query city info");
-                            }
-
-                            @Override
-                            public void onResponse(Call call, Response response) throws IOException {
-                                String cityText = response.body().string();
-                                Log.d(TAG, "onResponse: "+cityText);
-                                Utility.handleCityResponse(cityText,pro_id);
-                                final int c_id = queryCityIdFromLocal(pro_id,cityName);
-                                String weatherId = queryWeatherIdFromLocal(c_id,countyName);
-                                if (!TextUtils.isEmpty(weatherId)){
-                                    //requestWeather
-                                    requestWeather(weatherId);
-                                }else{
-                                    //query weather info from server
-                                    HttpUtil.sendOkHttpRequest(address + "/" + pro_id + "/" + c_id, new Callback() {
-                                        @Override
-                                        public void onFailure(Call call, IOException e) {
-                                            Log.d(TAG, "onFailure: request county info");
-                                        }
-
-                                        @Override
-                                        public void onResponse(Call call, Response response) throws IOException {
-                                            String countyText = response.body().string();
-                                            Log.d(TAG, "onResponse: "+countyText);
-                                            Utility.handleCountyResponse(countyText,c_id);
-                                            String weatherId = queryWeatherIdFromLocal(c_id,countyName);
-                                            if (!TextUtils.isEmpty(weatherId)){
-                                                //requestWeather
-                                                requestWeather(weatherId);
-                                            }
-                                        }
-                                    });
-                                }
-                            }
-                        });
-                    }
-                }
-            });
-        }
-   }
-
-
-    private String queryWeatherIdFromLocal( int cityId,  String countyName) {
-        List<County> countyList = DataSupport.where("cityId = ?",String.valueOf(cityId)).find(County.class);
-        if (countyList.size() > 0){
-            for (County county : countyList){
-                if (county.getCountyName().equals(countyName)){
-                    return county.getWeatherId();
-                }
-            }
-        }
-        return null;
-    }
-
-    private int queryCityIdFromLocal(  int provinceId,  String cityName) {
-        List<City> cities = DataSupport.where("provinceId=?", String.valueOf(provinceId)).find(City.class);
-        if (cities.size() > 0){
-            for (City city : cities){
-                if (city.getCityName().equals(cityName)){
-                    return city.getCityCode();
-                }
-            }
-        }
-        return -1;
-    }
-     String address = "http://guolin.tech/api/china";
-    private int queryProvinceIdFromLocal( String provinceName) {
+    private void queryProvince(String provinceName){
         List<Province> provinceList = DataSupport.findAll(Province.class);
         if (provinceList.size() > 0){
-            for (Province province : provinceList){
-                if (province.getProvinceName().equals(provinceName)){
-                    return  province.getProvinceCode();
+            for (Province p:provinceList){
+                if (p.getProvinceName().equals(provinceName)){
+                    selectedProvince = p;
+                    message.what = GET_PROVINCE;
+                    mHandler.sendMessage(message);
+                    break;
                 }
             }
+        }else {
+            String address = "http://guolin.tech/api/china";
+            queryFromServer(address,"province",provinceName);
         }
-        return -1;
     }
+
+    private void queryCity(String cityName){
+        List<City> cityList = DataSupport.where("provinceid = ?",
+                String.valueOf(selectedProvince.getProvinceCode())).find(City.class);
+        if (cityList.size() > 0){
+            for (City c : cityList){
+                if (c.getCityName().equals(cityName)){
+                    selectedCity = c;
+                    message.what = GET_CITY;
+                    mHandler.sendMessage(message);
+                    break;
+                }
+            }
+        }else {
+            int provinceCode = selectedProvince.getProvinceCode();
+            String address = "http://guolin.tech/api/china"+provinceCode;
+            queryFromServer(address,"city",cityName);
+        }
+    }
+
+    private void queryCounty(String countyName){
+        List<County> countyList = DataSupport.where("cityid=?",String.valueOf(selectedCity.getCityCode())).find(County.class);
+        if (countyList.size() > 0){
+            for (County c : countyList){
+                if (c.getCountyName().equals(countyName)){
+                    selectedCounty = c;
+                    message.what = GET_COUNTY;
+                    mHandler.sendMessage(message);
+                    break;
+                }
+            }
+        }else {
+            int provinceCode = selectedProvince.getProvinceCode();
+            int cityCode = selectedCity.getCityCode();
+            String address = "http://guolin.tech/api/china"+provinceCode+"/"+cityCode;
+            queryFromServer(address,"county",countyName);
+        }
+    }
+    private void queryFromServer(String address, final String type,final String name) {
+//        showProgressDialog();
+        HttpUtil.sendOkHttpRequest(address, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                String responseText = response.body().string();
+                boolean result ;
+                if ("province".equals(type)){
+                    result = Utility.handleProvinceResponse(responseText);
+                }else if ("city".equals(type)){
+                    result = Utility.handleCityResponse(responseText,selectedProvince.getProvinceCode());
+                }else {
+                    result = Utility.handleCountyResponse(responseText,selectedCity.getCityCode());
+                }
+                if (result){
+                    if ("province".equals(type)){
+                        queryProvince(name);
+                    }else if ("city".equals(type)){
+                        queryCity(name);
+                    }else if ("county".equals(type)){
+                        queryCounty(name);
+                    }
+                }
+            }
+        });
+    }
+//   public void queryWeather(final String provinceName, final String cityName, final String countyName){
+//        final int provinceId = queryProvinceIdFromLocal(provinceName);
+//        Log.d(TAG, "queryWeather: start query"+provinceId);
+//        if (provinceId != -1){
+//            //check if cityId is invalid
+//            final int cityId = queryCityIdFromLocal(provinceId,cityName);
+//            if (cityId != -1){
+//                //check if county is null
+//                String weatherId = queryWeatherIdFromLocal(cityId,countyName);
+//                if (!TextUtils.isEmpty(weatherId)){
+//                    //requestWeather
+//                    requestWeather(weatherId);
+//                }else{
+//                    //query weather info from server
+//                    HttpUtil.sendOkHttpRequest(address + "/" + provinceId + "/" + cityId,
+//                            new Callback() {
+//                        @Override
+//                        public void onFailure(Call call, IOException e) {
+//                            Log.d(TAG, "onFailure: request county info");
+//                        }
+//
+//                        @Override
+//                        public void onResponse(Call call, Response response) throws IOException {
+//                            String countyText = response.body().string();
+//                            Utility.handleCountyResponse(countyText,cityId);
+//                            String weatherId = queryWeatherIdFromLocal(cityId,countyName);
+//                            if (!TextUtils.isEmpty(weatherId)){
+//                                //requestWeather
+//                                requestWeather(weatherId);
+//                             }
+//                        }
+//                    });
+//                }
+//            }else {
+//                //query city info from server
+//                Log.d(TAG, "queryWeather: query city info from server");
+//                HttpUtil.sendOkHttpRequest(address + "/" + provinceId, new Callback() {
+//                    @Override
+//                    public void onFailure(Call call, IOException e) {
+//                        Log.d(TAG, "onFailure: query city info");
+//                    }
+//
+//                    @Override
+//                    public void onResponse(Call call, Response response) throws IOException {
+//                        String cityText = response.body().string();
+//                        Utility.handleCityResponse(cityText,provinceId);
+//                        String weatherId = queryWeatherIdFromLocal(cityId,countyName);
+//                        if (!TextUtils.isEmpty(weatherId)){
+//                            //requestWeather
+//                            requestWeather(weatherId);
+//                        }else{
+//                            //query weather info from server
+//                            HttpUtil.sendOkHttpRequest(address + "/" + provinceId + "/" + cityId, new Callback() {
+//                                @Override
+//                                public void onFailure(Call call, IOException e) {
+//                                    Log.d(TAG, "onFailure: request county info");
+//                                }
+//
+//                                @Override
+//                                public void onResponse(Call call, Response response) throws IOException {
+//                                    String countyText = response.body().string();
+//                                    Utility.handleCountyResponse(countyText,cityId);
+//                                    String weatherId = queryWeatherIdFromLocal(cityId,countyName);
+//                                    if (!TextUtils.isEmpty(weatherId)){
+//                                        //requestWeather
+//                                        requestWeather(weatherId);
+//                                    }
+//                                }
+//                            });
+//                        }
+//                    }
+//                });
+//            }
+//        }else{
+//            //query full info from server
+//            Log.d(TAG, "queryWeather: query full info from server");
+//            HttpUtil.sendOkHttpRequest(address, new Callback() {
+//                @Override
+//                public void onFailure(Call call, IOException e) {
+//                    Log.d(TAG, "onFailure: query province info");
+//                }
+//
+//                @Override
+//                public void onResponse(Call call, Response response) throws IOException {
+//                    String provinceText = response.body().string();
+//                    Utility.handleProvinceResponse(provinceText);
+//                    Log.d(TAG, "onResponse:194 "+provinceText);
+//                    final int pro_id = queryProvinceIdFromLocal(provinceName);
+//                    final int cityId = queryCityIdFromLocal(pro_id,cityName);
+//                    Log.d(TAG, "onResponse: 196 "+cityId);
+//                    if (cityId != -1){
+//                        //check if county is null
+//                        String weatherId = queryWeatherIdFromLocal(cityId,countyName);
+//                        if (!TextUtils.isEmpty(weatherId)){
+//                            //requestWeather
+//                            requestWeather(weatherId);
+//                        }else{
+//                            //query weather info from server
+//                            Log.d(TAG, "queryWeather: query city info from server");
+//                            HttpUtil.sendOkHttpRequest(address + "/" + provinceId + "/" + cityId, new Callback() {
+//                                @Override
+//                                public void onFailure(Call call, IOException e) {
+//                                    Log.d(TAG, "onFailure: request county info");
+//                                }
+//
+//                                @Override
+//                                public void onResponse(Call call, Response response) throws IOException {
+//                                    String countyText = response.body().string();
+//                                    Log.d(TAG, "onResponse: "+countyText);
+//                                    Utility.handleCountyResponse(countyText,cityId);
+//                                    String weatherId = queryWeatherIdFromLocal(cityId,countyName);
+//                                    if (!TextUtils.isEmpty(weatherId)){
+//                                        //requestWeather
+//                                        requestWeather(weatherId);
+//                                    }
+//                                }
+//                            });
+//                        }
+//                    }else {
+//                        //query city info from server
+//                        Log.d(TAG, "onResponse: 227 +query city info from server");
+//                        HttpUtil.sendOkHttpRequest(address + "/" + pro_id, new Callback() {
+//                            @Override
+//                            public void onFailure(Call call, IOException e) {
+//                                Log.d(TAG, "onFailure: query city info");
+//                            }
+//
+//                            @Override
+//                            public void onResponse(Call call, Response response) throws IOException {
+//                                String cityText = response.body().string();
+//                                Log.d(TAG, "onResponse: "+cityText);
+//                                Utility.handleCityResponse(cityText,pro_id);
+//                                final int c_id = queryCityIdFromLocal(pro_id,cityName);
+//                                String weatherId = queryWeatherIdFromLocal(c_id,countyName);
+//                                if (!TextUtils.isEmpty(weatherId)){
+//                                    //requestWeather
+//                                    requestWeather(weatherId);
+//                                }else{
+//                                    //query weather info from server
+//                                    HttpUtil.sendOkHttpRequest(address + "/" + pro_id + "/" + c_id, new Callback() {
+//                                        @Override
+//                                        public void onFailure(Call call, IOException e) {
+//                                            Log.d(TAG, "onFailure: request county info");
+//                                        }
+//
+//                                        @Override
+//                                        public void onResponse(Call call, Response response) throws IOException {
+//                                            String countyText = response.body().string();
+//                                            Log.d(TAG, "onResponse: "+countyText);
+//                                            Utility.handleCountyResponse(countyText,c_id);
+//                                            String weatherId = queryWeatherIdFromLocal(c_id,countyName);
+//                                            if (!TextUtils.isEmpty(weatherId)){
+//                                                //requestWeather
+//                                                requestWeather(weatherId);
+//                                            }
+//                                            Intent service_intent = new Intent(Main2Activity.this, MyService.class);
+//                                            startService(service_intent);
+//                                        }
+//                                    });
+//                                }
+//                            }
+//                        });
+//                    }
+//                }
+//            });
+//        }
+//   }
+//
+//
+//    private String queryWeatherIdFromLocal( int cityId,  String countyName) {
+//        List<County> countyList = DataSupport.where("cityId = ?",String.valueOf(cityId)).find(County.class);
+//        if (countyList.size() > 0){
+//            for (County county : countyList){
+//                if (county.getCountyName().equals(countyName)){
+//                    return county.getWeatherId();
+//                }
+//            }
+//        }
+//        return null;
+//    }
+//
+//    private int queryCityIdFromLocal(  int provinceId,  String cityName) {
+//        List<City> cities = DataSupport.where("provinceId=?", String.valueOf(provinceId)).find(City.class);
+//        if (cities.size() > 0){
+//            for (City city : cities){
+//                if (city.getCityName().equals(cityName)){
+//                    return city.getCityCode();
+//                }
+//            }
+//        }
+//        return -1;
+//    }
+//     String address = "http://guolin.tech/api/china";
+//    private int queryProvinceIdFromLocal( String provinceName) {
+//        List<Province> provinceList = DataSupport.findAll(Province.class);
+//        if (provinceList.size() > 0){
+//            for (Province province : provinceList){
+//                if (province.getProvinceName().equals(provinceName)){
+//                    return  province.getProvinceCode();
+//                }
+//            }
+//        }
+//        return -1;
+//    }
 
     private void requestWeather(final String weatherId) {
         String weatherUrl = "http://guolin.tech/api/weather?cityid="
@@ -344,6 +477,9 @@ public class Main2Activity extends AppCompatActivity {
                 });
             }
         });
+        Intent intent_update = new Intent(Main2Activity.this, UpdateWeatherService.class);
+        intent_update.putExtra("weatherUrl", weatherUrl);
+        startService(intent_update);
     }
 
     private void requestPermission() {
@@ -375,7 +511,7 @@ public class Main2Activity extends AppCompatActivity {
 
     private void initialLocation() {
         LocationClientOption option = new LocationClientOption();
-        option.setScanSpan(500000);
+//        option.setScanSpan(500000);
         option.setIsNeedAddress(true);
         mLocationClient.setLocOption(option);
     }
@@ -419,6 +555,9 @@ public class Main2Activity extends AppCompatActivity {
                 weatherLayout.setVisibility(View.VISIBLE);
             }
         });
+
+        Intent intent = new Intent(this,UpdateWeatherService.class);
+        startService(intent);
     }
 
     @Override
@@ -451,29 +590,20 @@ public class Main2Activity extends AppCompatActivity {
 
    public class mBDAbstractLocationListener extends BDAbstractLocationListener{
         private String cur_city,cur_province,cur_county;
-//       int provinceId,cityId;
-//       String weatherId;
         @Override
         public void onReceiveLocation(BDLocation bdLocation) {
-//            cur_country = bdLocation.getCountry();
             cur_province = bdLocation.getProvince();
             cur_city = bdLocation.getCity();
             cur_county = bdLocation.getDistrict();
-
-//
             Log.d(TAG, "onReceiveLocation: "+cur_province+" "+cur_city+" "+cur_county);
-//            title_city.setText(cur_city);
-//            cur_province = "广东";
-//            cur_city = "广州";
-//            cur_county = "番禺";
-
-            Message message = new Message();
-            Bundle bundle = new Bundle();
-            bundle.putString("cur_province",cur_province);
-            bundle.putString("cur_city",cur_city);
-            bundle.putString("cur_county",cur_county);
-            Log.d(TAG, "onReceiveLocation: "+bundle.toString());
-            message.setData(bundle);
+//           title_city.setText(cur_city);
+            cur_province = "广东";
+            cur_city = "深圳";
+            cur_county = "深圳";
+            location[0] = cur_province;
+            location[1] = cur_city;
+            location[2] = cur_county;
+            message.what = GET_LOCATION;
             mHandler.sendMessage(message);
         }
     }
