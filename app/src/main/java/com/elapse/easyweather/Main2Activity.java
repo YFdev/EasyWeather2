@@ -480,7 +480,12 @@ public class Main2Activity extends AppCompatActivity {
             @Override
             public void onFailure(Call call, IOException e) {
                 Log.d(TAG, "onFailure: requestWeather");
-                swipeRefresh.setRefreshing(false);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        swipeRefresh.setRefreshing(false);
+                    }
+                });
             }
 
             @Override
