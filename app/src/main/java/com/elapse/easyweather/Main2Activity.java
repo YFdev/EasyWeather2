@@ -4,6 +4,8 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -11,10 +13,13 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -57,8 +62,6 @@ public class Main2Activity extends AppCompatActivity {
     private LinearLayout forecastLayout;
     private ImageView bingPic;
 
-    Handler mHandler;
-    Message message = new Message();
     SharedPreferences prefs;
 
     private String[] location = new String[3];
@@ -70,15 +73,55 @@ public class Main2Activity extends AppCompatActivity {
     public static final int GET_CITY = 2;
     public static final int GET_COUNTY = 3;
 
+    public SwipeRefreshLayout swipeRefresh;
+    private String weatherId_fresh;
+
+    Handler mHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            switch (msg.what){
+                case GET_LOCATION:
+                    Log.d(TAG, "handleMessage: "+location.toString());
+                    String provinceName = location[0];
+                    queryProvince(provinceName);
+                    break;
+                case GET_PROVINCE:
+                    String cityName = location[1];
+                    queryCity(cityName);
+                    break;
+                case GET_CITY:
+                    String countyName = location[2];
+                    queryCounty(countyName);
+                    break;
+                case GET_COUNTY:
+                    requestWeather(selectedCounty.getWeatherId());
+                    break;
+            }
+            return false;
+        }
+    });
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (Build.VERSION.SDK_INT >= 21){
+            View decoView = getWindow().getDecorView();
+            decoView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+            View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+        }
         mLocationClient = new LocationClient(getApplicationContext());
         mLocationClient.registerLocationListener(new mBDAbstractLocationListener());
+//        requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
         requestPermission();
         initView();
 
+        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                requestWeather(weatherId_fresh);
+            }
+        });
     }
 
     private void loadBingPic() {
@@ -106,6 +149,8 @@ public class Main2Activity extends AppCompatActivity {
     }
 
     private void initView() {
+        swipeRefresh = findViewById(R.id.swipe_refresh);
+        swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
         weatherLayout = findViewById(R.id.weather_layout);
         title_city = findViewById(R.id.title_city);
         titleUpdateTime = findViewById(R.id.title_update_time);
@@ -126,36 +171,10 @@ public class Main2Activity extends AppCompatActivity {
             loadBingPic();
         }
         String weatherString = prefs.getString("weather",null);
-        queryCounty(location[2]);
         if (weatherString != null){
             Weather weather = Utility.handleWeatherResponse(weatherString);
+            weatherId_fresh = weather.basic.weatherId;
             showWeatherInfo(weather);
-        }else if (selectedCounty != null){
-            requestWeather(selectedCounty.getWeatherId());
-        } else {
-            mHandler = new Handler(new Handler.Callback() {
-                @Override
-                public boolean handleMessage(Message msg) {
-                    switch (msg.what){
-                        case GET_LOCATION:
-                            String provinceName = location[0];
-                            queryProvince(provinceName);
-                            break;
-                        case GET_PROVINCE:
-                            String cityName = location[1];
-                            queryCity(cityName);
-                            break;
-                        case GET_CITY:
-                            String countyName = location[2];
-                            queryCounty(countyName);
-                            break;
-                        case GET_COUNTY:
-                            requestWeather(selectedCounty.getWeatherId());
-                            break;
-                    }
-                    return true;
-                }
-            });
         }
     }
 
@@ -165,8 +184,9 @@ public class Main2Activity extends AppCompatActivity {
             for (Province p:provinceList){
                 if (p.getProvinceName().equals(provinceName)){
                     selectedProvince = p;
-                    message.what = GET_PROVINCE;
-                    mHandler.sendMessage(message);
+                    Message msg1 = new Message();
+                    msg1.what = GET_PROVINCE;
+                    mHandler.sendMessage(msg1);
                     break;
                 }
             }
@@ -183,14 +203,15 @@ public class Main2Activity extends AppCompatActivity {
             for (City c : cityList){
                 if (c.getCityName().equals(cityName)){
                     selectedCity = c;
-                    message.what = GET_CITY;
-                    mHandler.sendMessage(message);
+                    Message msg2 = new Message();
+                    msg2.what = GET_CITY;
+                    mHandler.sendMessage(msg2);
                     break;
                 }
             }
         }else {
             int provinceCode = selectedProvince.getProvinceCode();
-            String address = "http://guolin.tech/api/china"+provinceCode;
+            String address = "http://guolin.tech/api/china/"+provinceCode;
             queryFromServer(address,"city",cityName);
         }
     }
@@ -201,15 +222,17 @@ public class Main2Activity extends AppCompatActivity {
             for (County c : countyList){
                 if (c.getCountyName().equals(countyName)){
                     selectedCounty = c;
-                    message.what = GET_COUNTY;
-                    mHandler.sendMessage(message);
+                    weatherId_fresh = c.getWeatherId();
+                    Message msg3 = new Message();
+                    msg3.what = GET_COUNTY;
+                    mHandler.sendMessage(msg3);
                     break;
                 }
             }
         }else {
             int provinceCode = selectedProvince.getProvinceCode();
             int cityCode = selectedCity.getCityCode();
-            String address = "http://guolin.tech/api/china"+provinceCode+"/"+cityCode;
+            String address = "http://guolin.tech/api/china/"+provinceCode+"/"+cityCode;
             queryFromServer(address,"county",countyName);
         }
     }
@@ -457,6 +480,7 @@ public class Main2Activity extends AppCompatActivity {
             @Override
             public void onFailure(Call call, IOException e) {
                 Log.d(TAG, "onFailure: requestWeather");
+                swipeRefresh.setRefreshing(false);
             }
 
             @Override
@@ -476,13 +500,20 @@ public class Main2Activity extends AppCompatActivity {
                             Toast.makeText(Main2Activity.this,
                                     "requestWeather failed",Toast.LENGTH_SHORT).show();
                         }
+                        swipeRefresh.setRefreshing(false);
                     }
                 });
             }
         });
+        Bundle b = new Bundle();
+        b.putString("weatherUrl",weatherUrl);
         Intent intent_update = new Intent(Main2Activity.this, UpdateWeatherService.class);
-        intent_update.putExtra("weatherUrl", weatherUrl);
+//        intent_update.putExtras(b);
+        intent_update.putExtra("url_data",b);
         startService(intent_update);
+
+        Intent intent2 = new Intent(this, MyService.class);
+        startService(intent2);
     }
 
     private void requestPermission() {
@@ -558,11 +589,6 @@ public class Main2Activity extends AppCompatActivity {
                 weatherLayout.setVisibility(View.VISIBLE);
             }
         });
-
-        Intent intent = new Intent(this,UpdateWeatherService.class);
-        startService(intent);
-        Intent intent2 = new Intent(this, MyService.class);
-        startService(intent2);
     }
 
     @Override
@@ -605,11 +631,19 @@ public class Main2Activity extends AppCompatActivity {
             cur_province = "广东";
             cur_city = "深圳";
             cur_county = "深圳";
-            location[0] = cur_province;
-            location[1] = cur_city;
-            location[2] = cur_county;
-            message.what = GET_LOCATION;
-            mHandler.sendMessage(message);
+
+            if (cur_province.equals(location[0]) && cur_city.equals(location[1]) && cur_county.equals(location[2])){
+
+
+            }else {
+                location[0] = cur_province;
+                location[1] = cur_city;
+                location[2] = cur_county;
+
+                Message msg0 = new Message();
+                msg0.what = GET_LOCATION;
+                mHandler.sendMessage(msg0);
+            }
         }
     }
 

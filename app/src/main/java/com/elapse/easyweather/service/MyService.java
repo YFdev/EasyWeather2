@@ -92,10 +92,6 @@ public class MyService extends Service {
                                                         String response_county = response.body().string();
                                                         Log.d("TAGGG", "onResponse: "+response_county);
                                                         Utility.handleCountyResponse(response_county,cityId);
-//                                                        if (j == cityList.size()-1){
-//                                                            stopSelf();
-//                                                            Log.d("TAGGG", "onResponse: query full info complete");
-//                                                        }
                                                     }
                                                 });
                                             }
@@ -108,7 +104,7 @@ public class MyService extends Service {
                     };
                     executor.execute(command);
                 }
-                executor.shutdown();
+//                executor.shutdown();
                 stopSelf();
             }
         });
