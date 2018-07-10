@@ -6,33 +6,41 @@
     android:layout_height="match_parent"
     android:background="@color/colorPrimary"
     tools:context="com.elapse.easyweather.MainActivity">
-    <ImageView
+    <!--<ImageView-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="match_parent"-->
+        <!--android:id="@+id/bing_pic"-->
+        <!--android:scaleType="centerCrop"/>-->
+    <android.support.v4.view.ViewPager
+        android:id="@+id/pager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/bing_pic"
-        android:scaleType="centerCrop"/>
+        android:layout_gravity="center">
 
-    <android.support.v4.widget.SwipeRefreshLayout
+    </android.support.v4.view.ViewPager>
+    <include layout="@layout/layout_frag"/>
+
+    <android.support.design.widget.FloatingActionButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/fab"
+        android:src="@drawable/more"
+        android:layout_gravity="bottom|end"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="32dp" />
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:id="@+id/swipe_refresh">
-        <ScrollView
-            android:id="@+id/weather_layout"
-            android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:layout_gravity="bottom"
+        android:gravity="center"
+        android:padding="8dp">
+        <ImageView
+            android:layout_width="16dp"
             android:layout_height="wrap_content"
-            android:overScrollMode="never"
-            android:scrollbars="none">
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:fitsSystemWindows="true">
-                <include layout="@layout/title"/>
-                <include layout="@layout/now"/>
-                <include layout="@layout/forecast"/>
-                <include layout="@layout/aqi"/>
-                <include layout="@layout/suggestion"/>
-            </LinearLayout>
-        </ScrollView>
-    </android.support.v4.widget.SwipeRefreshLayout>
+            android:src="@drawable/location"/>
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="wrap_content"
+            android:src="@drawable/dot"/>
+    </LinearLayout>
 </FrameLayout>
