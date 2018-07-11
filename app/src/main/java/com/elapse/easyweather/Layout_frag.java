@@ -350,7 +350,5 @@ public class Layout_frag extends Fragment {
         intent_update.putExtra("url_data",b);
         getActivity().startService(intent_update);
 
-        Intent intent2 = new Intent(getActivity(), MyService.class);
-        getActivity().startService(intent2);
     }
 }

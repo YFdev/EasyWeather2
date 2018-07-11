@@ -63,20 +63,19 @@ public class Main2Activity extends AppCompatActivity {
     private static final String TAG = "Main2Activity";
 
     public LocationClient mLocationClient;
+
 //    private ScrollView weatherLayout;
 //    private TextView title_city,titleUpdateTime,degreeText,weatherInfoText,
 //            aqiText,pm25Text,comfortText,carWashText,sportText;
 //    private LinearLayout forecastLayout;
 //    private ImageView bingPic;
-
 //    SharedPreferences prefs;
+
     public static String[] location = new String[3];
-
     private Handler mHandler;
-
     private ViewPager pager;
     private List<Fragment> fragmentList;
-    private Fragment fragment ;
+
 //    private Province selectedProvince;
 //    private City selectedCity;
 //    private County selectedCounty;
@@ -146,7 +145,6 @@ public class Main2Activity extends AppCompatActivity {
 //                requestWeather(weatherId_fresh);
 //            }
 //        });
-
 
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -485,5 +483,12 @@ public class Main2Activity extends AppCompatActivity {
 
     public void setHandler(Handler handler){
         mHandler = handler;
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Intent intent2 = new Intent(Main2Activity.this, MyService.class);
+        startService(intent2);
     }
 }
