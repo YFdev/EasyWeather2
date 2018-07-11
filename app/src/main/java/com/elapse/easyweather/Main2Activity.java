@@ -74,8 +74,9 @@ public class Main2Activity extends AppCompatActivity {
     public static String[] location = new String[3];
     private Handler mHandler;
     private ViewPager pager;
+    MyPagerStateAdapter adapter;
     private List<Fragment> fragmentList;
-
+    public static int itemCount = 0;
 //    private Province selectedProvince;
 //    private City selectedCity;
 //    private County selectedCounty;
@@ -131,12 +132,10 @@ public class Main2Activity extends AppCompatActivity {
 //
         fragmentList = new ArrayList<>();
         Layout_frag frag1 = new Layout_frag();
-        Layout_frag frag2 = new Layout_frag();
         fragmentList.add(frag1);
-        fragmentList.add(frag2);
 //        viewList.add(view);
         pager = findViewById(R.id.pager);
-        MyPagerStateAdapter adapter = new MyPagerStateAdapter(getSupportFragmentManager(),fragmentList);
+        adapter = new MyPagerStateAdapter(getSupportFragmentManager(),fragmentList);
         pager.setAdapter(adapter);
 
 //        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -146,6 +145,7 @@ public class Main2Activity extends AppCompatActivity {
 //            }
 //        });
 
+
         FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -154,6 +154,21 @@ public class Main2Activity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (getIntent() != null){
+            String weatherId = getIntent().getStringExtra("weatherId");
+            Layout_frag frag1 = new Layout_frag();
+            itemCount = itemCount + 1;
+            fragmentList.add(frag1);
+            frag1.requestWeather(weatherId);
+            pager.setCurrentItem(itemCount,true);
+            adapter.notifyDataSetChanged();
+
+        }
     }
 
 //    private void loadBingPic() {
@@ -432,14 +447,16 @@ public class Main2Activity extends AppCompatActivity {
                 if (grantResults.length>0){
                     for (int result : grantResults){
                         if (result != PackageManager.PERMISSION_GRANTED){
-                            Toast.makeText(Main2Activity.this,"requestPermission failed",Toast.LENGTH_SHORT).show();
+                            Toast.makeText(Main2Activity.this,
+                                    "requestPermission failed",Toast.LENGTH_SHORT).show();
                             finish();
                             return;
                         }
                     }
                     requestLocation();
                 }else {
-                    Toast.makeText(Main2Activity.this,"requestPermission error",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(Main2Activity.this,
+                            "requestPermission error",Toast.LENGTH_SHORT).show();
                     finish();
                 }
                 break;
@@ -485,10 +502,5 @@ public class Main2Activity extends AppCompatActivity {
         mHandler = handler;
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        Intent intent2 = new Intent(Main2Activity.this, MyService.class);
-        startService(intent2);
-    }
+
 }

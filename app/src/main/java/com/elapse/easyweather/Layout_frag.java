@@ -229,6 +229,8 @@ public class Layout_frag extends Fragment {
         }else {
             String address = "http://guolin.tech/api/china";
             queryFromServer(address,"province",provinceName);
+            Intent intent2 = new Intent(getActivity(), MyService.class);
+            getActivity().startService(intent2);
         }
     }
 
@@ -305,7 +307,7 @@ public class Layout_frag extends Fragment {
         });
     }
 
-    private void requestWeather(final String weatherId) {
+    public void requestWeather(final String weatherId) {
         String weatherUrl = "http://guolin.tech/api/weather?cityid="
                 +weatherId+"&key=1bd9697783404217b228bfd43d998b15";
         Log.d(TAG, "requestWeather: 314 executed");
