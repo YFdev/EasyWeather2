@@ -15,10 +15,11 @@
         android:id="@+id/pager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="center">
+        android:layout_gravity="center"
+        android:fitsSystemWindows="true">
 
     </android.support.v4.view.ViewPager>
-    <include layout="@layout/layout_frag"/>
+    <!--<include layout="@layout/layout_frag"/>-->
 
     <android.support.design.widget.FloatingActionButton
         android:layout_width="wrap_content"
@@ -38,6 +39,10 @@
             android:layout_width="16dp"
             android:layout_height="wrap_content"
             android:src="@drawable/location"/>
+        <ImageView
+            android:layout_width="16dp"
+            android:layout_height="wrap_content"
+            android:src="@drawable/dot"/>
         <ImageView
             android:layout_width="16dp"
             android:layout_height="wrap_content"

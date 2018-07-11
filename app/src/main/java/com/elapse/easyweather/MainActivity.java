@@ -340,14 +340,14 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void otherCity(View view){
-        switch (view.getId()){
-            case R.id.other_city:
-                Intent intent = new Intent(MainActivity.this,search_Activity.class);
-                startActivity(intent);
-                break;
-                default:
-                    break;
-        }
-    }
+//    public void otherCity(View view){
+//        switch (view.getId()){
+//            case R.id.other_city:
+//                Intent intent = new Intent(MainActivity.this,search_Activity.class);
+//                startActivity(intent);
+//                break;
+//                default:
+//                    break;
+//        }
+//    }
 }
