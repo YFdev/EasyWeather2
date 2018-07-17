@@ -2,14 +2,14 @@ package com.elapse.easyweather;
 
 import android.Manifest;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
@@ -17,49 +17,28 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
-import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.Window;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.baidu.location.BDAbstractLocationListener;
 import com.baidu.location.BDLocation;
 import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
-import com.bumptech.glide.Glide;
-import com.elapse.easyweather.Adapter.MyPagerAdapter;
 import com.elapse.easyweather.Adapter.MyPagerStateAdapter;
-import com.elapse.easyweather.db.City;
-import com.elapse.easyweather.db.County;
-import com.elapse.easyweather.db.Province;
-import com.elapse.easyweather.gson.Forecast;
-import com.elapse.easyweather.gson.Weather;
-import com.elapse.easyweather.service.MyService;
-import com.elapse.easyweather.service.UpdateWeatherService;
-import com.elapse.easyweather.utils.HttpUtil;
-import com.elapse.easyweather.utils.Utility;
+import com.elapse.easyweather.db.PagerList;
 import com.elapse.easyweather.utils.WeatherConst;
 
+import org.litepal.LitePal;
 import org.litepal.crud.DataSupport;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Response;
-
-public class Main2Activity extends AppCompatActivity {
+public class Main2Activity extends AppCompatActivity implements ViewPager.OnPageChangeListener{
     private static final String TAG = "Main2Activity";
 
     public LocationClient mLocationClient;
@@ -77,6 +56,11 @@ public class Main2Activity extends AppCompatActivity {
     MyPagerStateAdapter adapter;
     private List<Fragment> fragmentList;
     public static int itemCount = 0;
+    private LinearLayout indicatorLayout;
+//    private List<View> indicatorList;
+    private LinearLayout.LayoutParams params;
+    private FloatingActionButton fab;
+    private List<String> weatherIdList;
 //    private Province selectedProvince;
 //    private City selectedCity;
 //    private County selectedCounty;
@@ -126,32 +110,24 @@ public class Main2Activity extends AppCompatActivity {
         mLocationClient.registerLocationListener(new mBDAbstractLocationListener());
 //        requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
+        init();
         requestPermission();
-//        View view = getLayoutInflater().inflate(R.layout.layout_frag,null);
-//        initView(view);
-//
-        fragmentList = new ArrayList<>();
-        Layout_frag frag1 = new Layout_frag();
-        fragmentList.add(frag1);
-//        viewList.add(view);
-        pager = findViewById(R.id.pager);
-        adapter = new MyPagerStateAdapter(getSupportFragmentManager(),fragmentList);
-        pager.setAdapter(adapter);
-
-//        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-//            @Override
-//            public void onRefresh() {
-//                requestWeather(weatherId_fresh);
-//            }
-//        });
-
-
-        FloatingActionButton fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(Main2Activity.this,search_Activity.class);
-                startActivity(intent);
+                intent.putExtra("currentCity",location[2]);
+                startActivityForResult(intent,1);
+//                if (itemCount <= 4){
+//                    OtherFrag frag = new OtherFrag();
+//                    frag.requestWeather("CN101190101");
+//                    itemCount = itemCount + 1;
+//                    fragmentList.add(frag);
+//                    adapter.notifyDataSetChanged();
+//                    pager.setCurrentItem(itemCount,true);
+//                }else {
+//                    fragmentList.remove(itemCount);
+//                }
             }
         });
     }
@@ -159,17 +135,91 @@ public class Main2Activity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        if (getIntent() != null){
-            String weatherId = getIntent().getStringExtra("weatherId");
-            Layout_frag frag1 = new Layout_frag();
-            itemCount = itemCount + 1;
-            fragmentList.add(frag1);
-            frag1.requestWeather(weatherId);
-            pager.setCurrentItem(itemCount,true);
-            adapter.notifyDataSetChanged();
+        loadPageList();
+    }
 
+    private void init() {
+        // add homepage
+        fragmentList = new ArrayList<>();
+        Layout_frag frag1 = new Layout_frag();
+        fragmentList.add(frag1);
+        pager = findViewById(R.id.pager);
+        pager.addOnPageChangeListener(this);
+        pager.setOffscreenPageLimit(4);
+        adapter = new MyPagerStateAdapter(getSupportFragmentManager(),fragmentList);
+        pager.setAdapter(adapter);
+        //add homepage indicator
+        indicatorLayout = findViewById(R.id.indicator);
+//        indicatorList = new ArrayList<>();
+        View locate = new View(this);
+        locate.setBackgroundResource(R.drawable.homepage_seletor);
+        locate.setEnabled(true);
+        params = new LinearLayout.LayoutParams(10,10);
+        params.rightMargin = 5;
+        indicatorLayout.addView(locate,params);
+//        indicatorList.add(locate);
+        weatherIdList = new ArrayList<>();
+//        dot = new View(this);
+//        dot.setBackgroundResource(R.drawable.indicator_seletor);
+        fab = findViewById(R.id.fab);
+        LitePal.getDatabase();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode){
+            case 1:
+                if (resultCode == RESULT_OK){
+                    String weatherId = data.getStringExtra("weatherId");
+                    if (weatherIdList.contains(weatherId)){
+                        pager.setCurrentItem(weatherIdList.indexOf(weatherId)+1,true);
+                        return;
+                    }
+                    if (fragmentList.size() < 5){
+                        addPage(weatherId);
+                    }else{
+                        fragmentList.remove(4);
+                        weatherIdList.add(weatherId);
+                        OtherFrag frag = new OtherFrag();
+                        frag.requestWeather(weatherId);
+                        fragmentList.add(frag);
+                        adapter.notifyDataSetChanged();
+                        pager.setCurrentItem(fragmentList.size()-1,true);
+                    }
+//                    if (itemCount <= 4){
+//                        OtherFrag frag = new OtherFrag();
+//                        frag.requestWeather(weatherId);
+//                        itemCount = itemCount + 1;
+//                        fragmentList.add(frag);
+//                        adapter.notifyDataSetChanged();
+//                        pager.setCurrentItem(itemCount,true);
+//                    }else {
+//                        fragmentList.remove(itemCount);
+//                    }
+//                    fragmentList.add(frag);
+//                    frag.requestWeather(weatherId);
+//                    adapter.notifyDataSetChanged();
+//                    pager.setCurrentItem(itemCount,true);
+                }
+                break;
         }
     }
+
+    private void addPage(String weatherId) {
+        OtherFrag frag = new OtherFrag();
+        frag.requestWeather(weatherId);
+        fragmentList.add(frag);
+        weatherIdList.add(weatherId);
+//        itemCount = itemCount+1;
+        View dot = new View(this);
+        dot.setBackgroundResource(R.drawable.indicator_seletor);
+        indicatorLayout.addView(dot,params);
+
+        adapter.notifyDataSetChanged();
+        Log.d(TAG, "addPage: 218-- "+fragmentList.size()+"--"+indicatorLayout.getChildCount());
+        pager.setCurrentItem(fragmentList.size()-1,true);
+    }
+
 
 //    private void loadBingPic() {
 //        String requestBingPic = "http://guolin.tech/api/bing_pic";
@@ -361,7 +411,7 @@ public class Main2Activity extends AppCompatActivity {
 //        intent_update.putExtra("url_data",b);
 //        startService(intent_update);
 //
-//        Intent intent2 = new Intent(this, MyService.class);
+//        Intent intent2 = new Intent(this, InitService.class);
 //        startService(intent2);
 //    }
 
@@ -394,7 +444,7 @@ public class Main2Activity extends AppCompatActivity {
 
     private void initialLocation() {
         LocationClientOption option = new LocationClientOption();
-//        option.setScanSpan(500000);
+        option.setScanSpan(600000);
         option.setIsNeedAddress(true);
         mLocationClient.setLocOption(option);
     }
@@ -468,9 +518,35 @@ public class Main2Activity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         mLocationClient.stop();
+        savePageList();
     }
 
-   public class mBDAbstractLocationListener extends BDAbstractLocationListener{
+    @Override
+    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+
+    }
+
+    @Override
+    public void onPageSelected(int position) {
+//        for(int i = 0;i<indicatorLayout.getChildCount();i++){
+//            if (i == position){
+//                indicatorLayout.getChildAt(i).setEnabled(true);
+//            }else {
+//                indicatorLayout.getChildAt(i).setEnabled(false);
+//            }
+//        }
+        indicatorLayout.getChildAt(itemCount).setEnabled(false);
+        Log.d(TAG, "addPage: 538-- "+position);
+        indicatorLayout.getChildAt(position).setEnabled(true);
+        itemCount = position;
+    }
+
+    @Override
+    public void onPageScrollStateChanged(int state) {
+
+    }
+
+    public class mBDAbstractLocationListener extends BDAbstractLocationListener{
         private String cur_city,cur_province,cur_county;
         @Override
         public void onReceiveLocation(BDLocation bdLocation) {
@@ -479,22 +555,19 @@ public class Main2Activity extends AppCompatActivity {
             cur_county = bdLocation.getDistrict();
             Log.d(TAG, "onReceiveLocation: "+cur_province+" "+cur_city+" "+cur_county);
 //           title_city.setText(cur_city);
-            cur_province = "广东";
-            cur_city = "深圳";
-            cur_county = "深圳";
-
-            if (cur_province.equals(location[0]) && cur_city.equals(location[1]) && cur_county.equals(location[2])){
-
-
-            }else {
-                location[0] = cur_province;
-                location[1] = cur_city;
-                location[2] = cur_county;
-
-                Message msg0 = new Message();
-                msg0.what = WeatherConst.GET_LOCATION;
-                mHandler.sendMessage(msg0);
+            if (TextUtils.isEmpty(cur_province) || TextUtils.isEmpty(cur_city)
+                    || TextUtils.isEmpty(cur_county)){
+                cur_province = "广东";
+                cur_city = "深圳";
+                cur_county = "深圳";
             }
+            location[0] = cur_province;
+            location[1] = cur_city;
+            location[2] = cur_county;
+            Log.d(TAG, "onReceiveLocation: "+location[0]+" "+location[1]+" "+location[2]);
+            Message msg0 = new Message();
+            msg0.what = WeatherConst.GET_LOCATION;
+            mHandler.sendMessage(msg0);
         }
     }
 
@@ -502,5 +575,33 @@ public class Main2Activity extends AppCompatActivity {
         mHandler = handler;
     }
 
+    private void savePageList(){
+       if (weatherIdList.size()>0){
+           for (int i = 0;i<weatherIdList.size();i++){
+               PagerList list = new PagerList();
+               list.setPageNum(i+1);
+               list.setWeatherId(weatherIdList.get(i));
+               list.save();
 
+           }
+       }
+    }
+    private void loadPageList(){
+        List<PagerList> pagerSave = DataSupport.findAll(PagerList.class);
+        if (pagerSave.size()>0){
+//            List<OtherFrag> frags = new ArrayList<>();
+            for (PagerList pl : pagerSave){
+                OtherFrag frag = new OtherFrag();
+                frag.requestWeather(pl.getWeatherId());
+                fragmentList.add(pl.getPageNum(),frag);
+
+                View dot = new View(this);
+                dot.setBackgroundResource(R.drawable.indicator_seletor);
+                dot.setEnabled(false);
+                indicatorLayout.addView(dot,params);
+            }
+            adapter.notifyDataSetChanged();
+            pager.setCurrentItem(0);
+        }
+    }
 }

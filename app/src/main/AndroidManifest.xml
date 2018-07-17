@@ -50,7 +50,7 @@
         </activity>
 
         <service
-            android:name=".service.MyService"
+            android:name=".service.InitService"
             android:enabled="true"
             android:exported="true" />
         <service

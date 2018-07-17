@@ -24,8 +24,8 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
 
-public class MyService extends Service {
-
+public class InitService extends Service {
+    private static final String TAG = "InitService";
     ExecutorService executor ;
 
     @Override
@@ -104,7 +104,6 @@ public class MyService extends Service {
                     };
                     executor.execute(command);
                 }
-//                executor.shutdown();
                 stopSelf();
             }
         });
@@ -120,5 +119,7 @@ public class MyService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+//        executor.shutdown();
+        Log.d(TAG, "onDestroy: initial complete");
     }
 }

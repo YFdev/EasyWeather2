@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
+    android:gravity="center_vertical"
     android:layout_height="?attr/actionBarSize">
     <TextView
         android:id="@+id/title_city"
@@ -9,7 +10,7 @@
         android:gravity="center"
         android:layout_height="match_parent"
         android:textColor="#fff"
-        android:hint="cityname"
+        android:hint="@string/cityname"
         android:textSize="20sp" />
 
     <TextView
@@ -19,6 +20,6 @@
         android:gravity="center"
         android:layout_height="match_parent"
         android:textColor="#fff"
-        android:hint="time"
+        android:hint="@string/time"
         android:textSize="16sp" />
 </LinearLayout>

@@ -1,3 +1,17 @@
 <resources>
     <string name="app_name">EasyWeather</string>
+    <string name="search_btn">搜索</string>
+    <string name="current_city">当前城市</string>
+    <string name="hint">--</string>
+    <string name="hot_cities">热门城市</string>
+    <string name="search_history">搜索历史</string>
+    <string name="clear_history">清除历史</string>
+    <string name="cityname">CN</string>
+    <string name="time">--:--</string>
+    <string name="forecast">预报</string>
+    <string name="BMI">空气质量</string>
+    <string name="AQI">AQI指数</string>
+    <string name="pm2_5">PM2.5指数</string>
+    <string name="suggestions">生活建议</string>
+
 </resources>

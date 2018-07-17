@@ -3,4 +3,7 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+    <color name="indicatorBackground">#A9C2FF</color>
+    <color name="btnBackground">#D0E4FF</color>
+    <color name="outlookBackground">#DDF3FF</color>
 </resources>

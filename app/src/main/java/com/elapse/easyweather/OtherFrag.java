@@ -45,7 +45,7 @@ import okhttp3.Response;
  * Created by YF_lala on 2018/7/10.
  */
 //
-public class Layout_frag extends Fragment {
+public class OtherFrag extends Fragment {
     private static final String TAG = "Layout_frag";
     private ScrollView weatherLayout;
     private TextView title_city,titleUpdateTime,degreeText,weatherInfoText,
@@ -54,46 +54,44 @@ public class Layout_frag extends Fragment {
     public SwipeRefreshLayout swipeRefresh;
     ImageView bingPic;
 
-    private Province selectedProvince;
-    private City selectedCity;
-    private County selectedCounty;
+//    private Province selectedProvince;
+//    private City selectedCity;
+//    private County selectedCounty;
     private String weatherId_fresh;
     SharedPreferences prefs;
 
     private Main2Activity activity;
 
-    Handler mHandler = new Handler(new Handler.Callback() {
-        @Override
-        public boolean handleMessage(Message msg) {
-            switch (msg.what){
-                case WeatherConst.GET_LOCATION:
-                    String provinceName = Main2Activity.location[0];
-                    Log.d(TAG, "handleMessage: "+provinceName);
-                    queryProvince(provinceName);
-                    break;
-                case WeatherConst.GET_PROVINCE:
-                    String cityName = Main2Activity.location[1];
-                    Log.d(TAG, "handleMessage: "+cityName);
-                    queryCity(cityName);
-                    break;
-                case WeatherConst.GET_CITY:
-                    String countyName = Main2Activity.location[2];
-                    Log.d(TAG, "handleMessage: "+countyName);
-                    queryCounty(countyName);
-                    break;
-                case WeatherConst.GET_COUNTY:
-                    requestWeather(selectedCounty.getWeatherId());
-                    break;
-            }
-            return false;
-        }
-    });
+//    Handler mHandler = new Handler(new Handler.Callback() {
+//        @Override
+//        public boolean handleMessage(Message msg) {
+//            switch (msg.what){
+//                case WeatherConst.GET_LOCATION:
+//                    Log.d(TAG, "handleMessage: "+Main2Activity.location.toString());
+//                    String provinceName = Main2Activity.location[0];
+//                    queryProvince(provinceName);
+//                    break;
+//                case WeatherConst.GET_PROVINCE:
+//                    String cityName = Main2Activity.location[1];
+//                    queryCity(cityName);
+//                    break;
+//                case WeatherConst.GET_CITY:
+//                    String countyName = Main2Activity.location[2];
+//                    queryCounty(countyName);
+//                    break;
+//                case WeatherConst.GET_COUNTY:
+//                    requestWeather(selectedCounty.getWeatherId());
+//                    break;
+//            }
+//            return false;
+//        }
+//    });
 
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
         activity = (Main2Activity) context;
-        activity.setHandler(mHandler);
+//        activity.setHandler(mHandler);
     }
 
     @Override
@@ -184,7 +182,8 @@ public class Layout_frag extends Fragment {
         }else{
             loadBingPic();
         }
-        String weatherString = prefs.getString("weather",null);
+
+        String weatherString = prefs.getString("weather"+weatherId_fresh,null);
         if (weatherString != null){
             Weather weather = Utility.handleWeatherResponse(weatherString);
             weatherId_fresh = weather.basic.weatherId;
@@ -216,104 +215,99 @@ public class Layout_frag extends Fragment {
         });
     }
 
-    private void queryProvince(String provinceName){
-        List<Province> provinceList = DataSupport.findAll(Province.class);
-        if (provinceList.size() > 0){
-            for (Province p:provinceList){
-                if (p.getProvinceName().equals(provinceName)){
-                    selectedProvince = p;
-                    Message msg1 = new Message();
-                    msg1.what = WeatherConst.GET_PROVINCE;
-                    mHandler.sendMessage(msg1);
-                    break;
-                }
-            }
-        }else {
-            String address = "http://guolin.tech/api/china";
-            queryFromServer(address,"province",provinceName);
-
-        }
-    }
-
-    private void queryCity(String cityName){
-        List<City> cityList = DataSupport.where("provinceid = ?",
-                String.valueOf(selectedProvince.getProvinceCode())).find(City.class);
-        if (cityList.size() > 0){
-            for (City c : cityList){
-                if (c.getCityName().equals(cityName)){
-                    selectedCity = c;
-                    Message msg2 = new Message();
-                    msg2.what = WeatherConst.GET_CITY;
-                    mHandler.sendMessage(msg2);
-                    break;
-                }
-            }
-        }else {
-            int provinceCode = selectedProvince.getProvinceCode();
-            String address = "http://guolin.tech/api/china/"+provinceCode;
-            queryFromServer(address,"city",cityName);
-        }
-    }
-
-    private void queryCounty(String countyName){
-        List<County> countyList = DataSupport.where("cityid=?",String.valueOf(selectedCity.getCityCode())).find(County.class);
-        if (countyList.size() > 0){
-            for (County c : countyList){
-                if (c.getCountyName().equals(countyName)){
-                    selectedCounty = c;
-                    weatherId_fresh = c.getWeatherId();
-                    Message msg3 = new Message();
-                    msg3.what = WeatherConst.GET_COUNTY;
-                    mHandler.sendMessage(msg3);
-                    break;
-                }
-            }
-        }else {
-            int provinceCode = selectedProvince.getProvinceCode();
-            int cityCode = selectedCity.getCityCode();
-            String address = "http://guolin.tech/api/china/"+provinceCode+"/"+cityCode;
-            queryFromServer(address,"county",countyName);
-
-            Intent intent2 = new Intent(getActivity(), InitService.class);
-            getActivity().startService(intent2);
-        }
-    }
-
-    private void queryFromServer(String address, final String type,final String name) {
-//        showProgressDialog();
-        HttpUtil.sendOkHttpRequest(address, new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                e.printStackTrace();
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                String responseText = response.body().string();
-                boolean result ;
-                if ("province".equals(type)){
-                    result = Utility.handleProvinceResponse(responseText);
-                }else if ("city".equals(type)){
-                    result = Utility.handleCityResponse(responseText,selectedProvince.getProvinceCode());
-                }else {
-                    result = Utility.handleCountyResponse(responseText,selectedCity.getCityCode());
-                }
-                if (result){
-                    if ("province".equals(type)){
-                        queryProvince(name);
-                    }else if ("city".equals(type)){
-                        queryCity(name);
-                    }else if ("county".equals(type)){
-                        queryCounty(name);
-                    }
-                }
-            }
-        });
-
-    }
+//    private void queryProvince(String provinceName){
+//        List<Province> provinceList = DataSupport.findAll(Province.class);
+//        if (provinceList.size() > 0){
+//            for (Province p:provinceList){
+//                if (p.getProvinceName().equals(provinceName)){
+//                    selectedProvince = p;
+//                    Message msg1 = new Message();
+//                    msg1.what = WeatherConst.GET_PROVINCE;
+//                    mHandler.sendMessage(msg1);
+//                    break;
+//                }
+//            }
+//        }else {
+//            String address = "http://guolin.tech/api/china";
+//            queryFromServer(address,"province",provinceName);
+//        }
+//    }
+//
+//    private void queryCity(String cityName){
+//        List<City> cityList = DataSupport.where("provinceid = ?",
+//                String.valueOf(selectedProvince.getProvinceCode())).find(City.class);
+//        if (cityList.size() > 0){
+//            for (City c : cityList){
+//                if (c.getCityName().equals(cityName)){
+//                    selectedCity = c;
+//                    Message msg2 = new Message();
+//                    msg2.what = WeatherConst.GET_CITY;
+//                    mHandler.sendMessage(msg2);
+//                    break;
+//                }
+//            }
+//        }else {
+//            int provinceCode = selectedProvince.getProvinceCode();
+//            String address = "http://guolin.tech/api/china/"+provinceCode;
+//            queryFromServer(address,"city",cityName);
+//        }
+//    }
+//
+//    private void queryCounty(String countyName){
+//        List<County> countyList = DataSupport.where("cityid=?",String.valueOf(selectedCity.getCityCode())).find(County.class);
+//        if (countyList.size() > 0){
+//            for (County c : countyList){
+//                if (c.getCountyName().equals(countyName)){
+//                    selectedCounty = c;
+//                    weatherId_fresh = c.getWeatherId();
+//                    Message msg3 = new Message();
+//                    msg3.what = WeatherConst.GET_COUNTY;
+//                    mHandler.sendMessage(msg3);
+//                    break;
+//                }
+//            }
+//        }else {
+//            int provinceCode = selectedProvince.getProvinceCode();
+//            int cityCode = selectedCity.getCityCode();
+//            String address = "http://guolin.tech/api/china/"+provinceCode+"/"+cityCode;
+//            queryFromServer(address,"county",countyName);
+//        }
+//    }
+//
+//    private void queryFromServer(String address, final String type,final String name) {
+////        showProgressDialog();
+//        HttpUtil.sendOkHttpRequest(address, new Callback() {
+//            @Override
+//            public void onFailure(Call call, IOException e) {
+//                e.printStackTrace();
+//            }
+//
+//            @Override
+//            public void onResponse(Call call, Response response) throws IOException {
+//                String responseText = response.body().string();
+//                boolean result ;
+//                if ("province".equals(type)){
+//                    result = Utility.handleProvinceResponse(responseText);
+//                }else if ("city".equals(type)){
+//                    result = Utility.handleCityResponse(responseText,selectedProvince.getProvinceCode());
+//                }else {
+//                    result = Utility.handleCountyResponse(responseText,selectedCity.getCityCode());
+//                }
+//                if (result){
+//                    if ("province".equals(type)){
+//                        queryProvince(name);
+//                    }else if ("city".equals(type)){
+//                        queryCity(name);
+//                    }else if ("county".equals(type)){
+//                        queryCounty(name);
+//                    }
+//                }
+//            }
+//        });
+//    }
 
     public void requestWeather(final String weatherId) {
-
+        weatherId_fresh = weatherId;
         String weatherUrl = "http://guolin.tech/api/weather?cityid="
                 +weatherId+"&key=1bd9697783404217b228bfd43d998b15";
         Log.d(TAG, "requestWeather: 314 executed");
@@ -339,7 +333,7 @@ public class Layout_frag extends Fragment {
                     public void run() {
                         if (weather != null && "ok".equals(weather.status)){
                             SharedPreferences.Editor editor = prefs.edit();
-                            editor.putString("weather",responseText);
+                            editor.putString("weather"+weatherId,responseText);
                             editor.apply();
                             showWeatherInfo(weather);
                         }else {
@@ -351,10 +345,18 @@ public class Layout_frag extends Fragment {
                 });
             }
         });
-        Bundle b = new Bundle();
-        b.putString("weatherUrl",weatherUrl);
-        Intent intent_update = new Intent(getActivity(), UpdateWeatherService.class);
-        intent_update.putExtra("url_data",b);
-        getActivity().startService(intent_update);
+//        Bundle b = new Bundle();
+//        b.putString("weatherUrl",weatherUrl);
+//        Intent intent_update = new Intent(getActivity(), UpdateWeatherService.class);
+//        intent_update.putExtra("url_data",b);
+//        getActivity().startService(intent_update);
+    }
+
+    public String getWeatherId_fresh() {
+        return weatherId_fresh;
+    }
+
+    public void setWeatherId_fresh(String weatherId_fresh) {
+        this.weatherId_fresh = weatherId_fresh;
     }
 }

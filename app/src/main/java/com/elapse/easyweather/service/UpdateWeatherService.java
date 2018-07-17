@@ -1,6 +1,7 @@
 package com.elapse.easyweather.service;
 
 import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
@@ -9,11 +10,13 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
+import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Toast;
 
 import com.elapse.easyweather.Main2Activity;
+import com.elapse.easyweather.R;
 import com.elapse.easyweather.db.County;
 import com.elapse.easyweather.gson.Weather;
 import com.elapse.easyweather.utils.HttpUtil;
@@ -66,7 +69,9 @@ public class UpdateWeatherService extends Service {
         manager.cancel(pi);
         manager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP,triggerAtTime,pi);
         return Service.START_REDELIVER_INTENT;
+
     }
+
 
     private void updateWeather(String weatherUrl){
         HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
@@ -85,6 +90,18 @@ public class UpdateWeatherService extends Service {
                     editor.putString("weather",responseText);
                     editor.apply();
                 }
+                Intent intent = new Intent(UpdateWeatherService.this,Main2Activity.class);
+                PendingIntent pi = PendingIntent.getActivity(UpdateWeatherService.this,
+                        0,intent,0);
+                Notification notification = new NotificationCompat.Builder(UpdateWeatherService.this)
+                        .setContentTitle("EasyWeather")
+                        .setContentText(weather.basic.cityName+" "+weather.now.temputure+" "
+                                +weather.basic.update.updateTime)
+                        .setWhen(System.currentTimeMillis())
+                        .setSmallIcon(R.mipmap.ic_launcher_round)
+                        .setContentIntent(pi)
+                        .build();
+                startForeground(1,notification);
             }
         });
     }
