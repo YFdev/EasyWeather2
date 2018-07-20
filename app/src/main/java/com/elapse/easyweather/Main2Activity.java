@@ -28,6 +28,7 @@ import com.baidu.location.BDAbstractLocationListener;
 import com.baidu.location.BDLocation;
 import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
+import com.elapse.easyweather.Adapter.MyFragmentAdapter;
 import com.elapse.easyweather.Adapter.MyPagerStateAdapter;
 import com.elapse.easyweather.db.PagerList;
 import com.elapse.easyweather.utils.WeatherConst;
@@ -53,14 +54,15 @@ public class Main2Activity extends AppCompatActivity implements ViewPager.OnPage
     public static String[] location = new String[3];
     private Handler mHandler;
     private ViewPager pager;
-    MyPagerStateAdapter adapter;
+    MyFragmentAdapter adapter;
     private List<Fragment> fragmentList;
-    public static int itemCount = 0;
+    public static int itemCount;
     private LinearLayout indicatorLayout;
 //    private List<View> indicatorList;
     private LinearLayout.LayoutParams params;
     private FloatingActionButton fab;
     private List<String> weatherIdList;
+    public static final int MAX_PAGE_COUNT = 5;
 //    private Province selectedProvince;
 //    private City selectedCity;
 //    private County selectedCounty;
@@ -130,12 +132,13 @@ public class Main2Activity extends AppCompatActivity implements ViewPager.OnPage
 //                }
             }
         });
+        loadPageList();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        loadPageList();
+        itemCount = 0;
     }
 
     private void init() {
@@ -146,21 +149,17 @@ public class Main2Activity extends AppCompatActivity implements ViewPager.OnPage
         pager = findViewById(R.id.pager);
         pager.addOnPageChangeListener(this);
         pager.setOffscreenPageLimit(4);
-        adapter = new MyPagerStateAdapter(getSupportFragmentManager(),fragmentList);
+        adapter = new MyFragmentAdapter(getSupportFragmentManager(),fragmentList);
         pager.setAdapter(adapter);
         //add homepage indicator
         indicatorLayout = findViewById(R.id.indicator);
-//        indicatorList = new ArrayList<>();
         View locate = new View(this);
         locate.setBackgroundResource(R.drawable.homepage_seletor);
         locate.setEnabled(true);
         params = new LinearLayout.LayoutParams(10,10);
         params.rightMargin = 5;
         indicatorLayout.addView(locate,params);
-//        indicatorList.add(locate);
         weatherIdList = new ArrayList<>();
-//        dot = new View(this);
-//        dot.setBackgroundResource(R.drawable.indicator_seletor);
         fab = findViewById(R.id.fab);
         LitePal.getDatabase();
     }
@@ -171,35 +170,28 @@ public class Main2Activity extends AppCompatActivity implements ViewPager.OnPage
             case 1:
                 if (resultCode == RESULT_OK){
                     String weatherId = data.getStringExtra("weatherId");
+                    weatherIdList.clear();
+                    List<PagerList> pagerSave = DataSupport.findAll(PagerList.class);
+                    if (pagerSave.size()>0) {
+                        for (PagerList pl : pagerSave) {
+                            weatherIdList.add(pl.getWeatherId());
+                        }
+                    }
                     if (weatherIdList.contains(weatherId)){
                         pager.setCurrentItem(weatherIdList.indexOf(weatherId)+1,true);
                         return;
                     }
-                    if (fragmentList.size() < 5){
+
+                    if (fragmentList.size() < MAX_PAGE_COUNT){
                         addPage(weatherId);
                     }else{
-                        fragmentList.remove(4);
+                        weatherIdList.remove(MAX_PAGE_COUNT-2);
                         weatherIdList.add(weatherId);
-                        OtherFrag frag = new OtherFrag();
-                        frag.requestWeather(weatherId);
-                        fragmentList.add(frag);
+                        OtherFrag frag1 = (OtherFrag) fragmentList.get(MAX_PAGE_COUNT-1);
+                        frag1.requestWeather(weatherId);
                         adapter.notifyDataSetChanged();
                         pager.setCurrentItem(fragmentList.size()-1,true);
                     }
-//                    if (itemCount <= 4){
-//                        OtherFrag frag = new OtherFrag();
-//                        frag.requestWeather(weatherId);
-//                        itemCount = itemCount + 1;
-//                        fragmentList.add(frag);
-//                        adapter.notifyDataSetChanged();
-//                        pager.setCurrentItem(itemCount,true);
-//                    }else {
-//                        fragmentList.remove(itemCount);
-//                    }
-//                    fragmentList.add(frag);
-//                    frag.requestWeather(weatherId);
-//                    adapter.notifyDataSetChanged();
-//                    pager.setCurrentItem(itemCount,true);
                 }
                 break;
         }
@@ -210,11 +202,9 @@ public class Main2Activity extends AppCompatActivity implements ViewPager.OnPage
         frag.requestWeather(weatherId);
         fragmentList.add(frag);
         weatherIdList.add(weatherId);
-//        itemCount = itemCount+1;
         View dot = new View(this);
         dot.setBackgroundResource(R.drawable.indicator_seletor);
         indicatorLayout.addView(dot,params);
-
         adapter.notifyDataSetChanged();
         Log.d(TAG, "addPage: 218-- "+fragmentList.size()+"--"+indicatorLayout.getChildCount());
         pager.setCurrentItem(fragmentList.size()-1,true);
@@ -515,10 +505,15 @@ public class Main2Activity extends AppCompatActivity implements ViewPager.OnPage
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        savePageList();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         mLocationClient.stop();
-        savePageList();
     }
 
     @Override
@@ -528,13 +523,6 @@ public class Main2Activity extends AppCompatActivity implements ViewPager.OnPage
 
     @Override
     public void onPageSelected(int position) {
-//        for(int i = 0;i<indicatorLayout.getChildCount();i++){
-//            if (i == position){
-//                indicatorLayout.getChildAt(i).setEnabled(true);
-//            }else {
-//                indicatorLayout.getChildAt(i).setEnabled(false);
-//            }
-//        }
         indicatorLayout.getChildAt(itemCount).setEnabled(false);
         Log.d(TAG, "addPage: 538-- "+position);
         indicatorLayout.getChildAt(position).setEnabled(true);
@@ -576,31 +564,34 @@ public class Main2Activity extends AppCompatActivity implements ViewPager.OnPage
     }
 
     private void savePageList(){
+        DataSupport.deleteAll(PagerList.class);
        if (weatherIdList.size()>0){
            for (int i = 0;i<weatherIdList.size();i++){
                PagerList list = new PagerList();
                list.setPageNum(i+1);
                list.setWeatherId(weatherIdList.get(i));
                list.save();
-
            }
        }
     }
+
     private void loadPageList(){
+        weatherIdList.clear();
         List<PagerList> pagerSave = DataSupport.findAll(PagerList.class);
         if (pagerSave.size()>0){
 //            List<OtherFrag> frags = new ArrayList<>();
             for (PagerList pl : pagerSave){
                 OtherFrag frag = new OtherFrag();
                 frag.requestWeather(pl.getWeatherId());
-                fragmentList.add(pl.getPageNum(),frag);
+                fragmentList.add(frag);
+                weatherIdList.add(pl.getWeatherId());
+                adapter.notifyDataSetChanged();
 
                 View dot = new View(this);
                 dot.setBackgroundResource(R.drawable.indicator_seletor);
                 dot.setEnabled(false);
                 indicatorLayout.addView(dot,params);
             }
-            adapter.notifyDataSetChanged();
             pager.setCurrentItem(0);
         }
     }

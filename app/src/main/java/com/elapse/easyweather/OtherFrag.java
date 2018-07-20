@@ -59,7 +59,6 @@ public class OtherFrag extends Fragment {
 //    private County selectedCounty;
     private String weatherId_fresh;
     SharedPreferences prefs;
-
     private Main2Activity activity;
 
 //    Handler mHandler = new Handler(new Handler.Callback() {

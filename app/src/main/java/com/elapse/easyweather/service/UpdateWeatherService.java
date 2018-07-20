@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
+import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.util.Log;
@@ -95,8 +96,9 @@ public class UpdateWeatherService extends Service {
                         0,intent,0);
                 Notification notification = new NotificationCompat.Builder(UpdateWeatherService.this)
                         .setContentTitle("EasyWeather")
-                        .setContentText(weather.basic.cityName+" "+weather.now.temputure+" "
-                                +weather.basic.update.updateTime)
+                        .setContentText(weather != null ? (weather.basic.cityName+"  "+" "+weather.now.more.info
+                                +" "+"  当前气温："+
+                                weather.now.temputure+"℃"): "-- : -- : --")
                         .setWhen(System.currentTimeMillis())
                         .setSmallIcon(R.mipmap.ic_launcher_round)
                         .setContentIntent(pi)

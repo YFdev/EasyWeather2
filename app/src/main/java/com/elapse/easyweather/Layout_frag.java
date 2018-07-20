@@ -313,7 +313,7 @@ public class Layout_frag extends Fragment {
     }
 
     public void requestWeather(final String weatherId) {
-
+//        Main2Activity.weatherIdList.add(weatherId);
         String weatherUrl = "http://guolin.tech/api/weather?cityid="
                 +weatherId+"&key=1bd9697783404217b228bfd43d998b15";
         Log.d(TAG, "requestWeather: 314 executed");

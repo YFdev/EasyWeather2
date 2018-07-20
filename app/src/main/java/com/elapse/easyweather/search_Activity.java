@@ -34,7 +34,7 @@ public class search_Activity extends AppCompatActivity implements View.OnClickLi
     private ListView search_history;
     private Button clear_history;
     private List<String> historyList;
-    private String[] hotCities = {"北京","上海","广州","深圳"};
+    private String[] hotCities = {"北京","上海","广州","深圳","西安","武汉","天津"};
     private ArrayAdapter<String> adapter;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -52,7 +52,7 @@ public class search_Activity extends AppCompatActivity implements View.OnClickLi
         search_history.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String cityName = historyList.get(position);
+                String cityName = historyList.get(position).trim();
                 feedBackData(cityName);
             }
         });
@@ -62,7 +62,7 @@ public class search_Activity extends AppCompatActivity implements View.OnClickLi
         hot_city.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String cityName = hotCities[position];
+                String cityName = hotCities[position].trim();
                 feedBackData(cityName);
             }
         });
@@ -71,7 +71,6 @@ public class search_Activity extends AppCompatActivity implements View.OnClickLi
     @Override
     protected void onStart() {
         super.onStart();
-//        LitePal.getDatabase();
         loadHistoryList();
     }
 
@@ -123,30 +122,31 @@ public class search_Activity extends AppCompatActivity implements View.OnClickLi
         }
         List<County> countyList = DataSupport.where("countyName=?",cityName).find(County.class);
         if (countyList.size() > 0){
-            String weatherId = countyList.get(0).getWeatherId();
+            String weatherId = countyList.get(0).getWeatherId().trim();
             Intent i = new Intent();
             i.putExtra("weatherId",weatherId);
             setResult(RESULT_OK,i);
             finish();
         }else {
-            Toast.makeText(search_Activity.this,"initial unfinished or input mistake",
+            Toast.makeText(search_Activity.this,"initialize unfinished or input mistake",
                     Toast.LENGTH_SHORT).show();
         }
-
     }
     private void loadHistoryList(){
+        historyList.clear();
+//        adapter.notifyDataSetChanged();
         List<SearchHistory> list = DataSupport.findAll(SearchHistory.class);
         if (list.size()>0){
             for (int i = 0;i<list.size();i++){
                 SearchHistory  history= list.get(i);
-                historyList.clear();
                 historyList.add(history.getCityName());
-                adapter.notifyDataSetChanged();
             }
         }
+        adapter.notifyDataSetChanged();
     }
 
     private void saveHistoryList(){
+        DataSupport.deleteAll(SearchHistory.class);
         for (int i = 0;i<historyList.size();i++){
             SearchHistory history = new SearchHistory();
             history.setCityName(historyList.get(i));
