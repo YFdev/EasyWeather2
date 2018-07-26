@@ -13,5 +13,9 @@
     <string name="AQI">AQI指数</string>
     <string name="pm2_5">PM2.5指数</string>
     <string name="suggestions">生活建议</string>
+    <string name="currentCityList">当前城市列表</string>
+    <string name="curcity_in_drawer">--</string>
+    <string name="itemCancel">取消</string>
+    <string name="itemDelete">删除</string>
 
 </resources>

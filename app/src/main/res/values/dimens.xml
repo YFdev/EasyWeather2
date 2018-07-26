@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="textSize">12sp</dimen>
+    <dimen name="drawerListMargin">5dp</dimen>
+    <dimen name="drawerTextSize">14sp</dimen>
 </resources>

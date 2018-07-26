@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <litepal>
-    <dbname value="weather_data"/>
-    <version value="16"/>
+    <dbname value="history_data"/>
+    <version value="11"/>
     <list>
-        <mapping class="com.elapse.easyweather.db.Province"/>
-        <mapping class="com.elapse.easyweather.db.City"/>
-        <mapping class="com.elapse.easyweather.db.County"/>
+        <!--<mapping class="com.elapse.easyweather.db.Province"/>-->
+        <!--<mapping class="com.elapse.easyweather.db.City"/>-->
+        <!--<mapping class="com.elapse.easyweather.db.County"/>-->
         <mapping class="com.elapse.easyweather.db.PagerList"/>
         <mapping class="com.elapse.easyweather.db.SearchHistory"/>
     </list>

@@ -6,4 +6,7 @@
     <color name="indicatorBackground">#A9C2FF</color>
     <color name="btnBackground">#D0E4FF</color>
     <color name="outlookBackground">#DDF3FF</color>
+    <color name="drawerListText">#0C0C20</color>
+    <color name="cancelBackground">#807B7F</color>
+    <color name="deleteBackground">#FF3331</color>
 </resources>

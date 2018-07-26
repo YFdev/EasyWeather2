@@ -3,6 +3,8 @@ package com.elapse.easyweather;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -28,6 +30,7 @@ import com.elapse.easyweather.gson.Forecast;
 import com.elapse.easyweather.gson.Weather;
 import com.elapse.easyweather.service.InitService;
 import com.elapse.easyweather.service.UpdateWeatherService;
+import com.elapse.easyweather.utils.AssetsUtils;
 import com.elapse.easyweather.utils.HttpUtil;
 import com.elapse.easyweather.utils.Utility;
 import com.elapse.easyweather.utils.WeatherConst;
@@ -58,31 +61,41 @@ public class Layout_frag extends Fragment {
     private City selectedCity;
     private County selectedCounty;
     private String weatherId_fresh;
-    SharedPreferences prefs;
+//    SharedPreferences prefs;
 
-    private Main2Activity activity;
+    private MainActivity activity;
+    private SQLiteDatabase db;
+    private String weatherId;
 
     Handler mHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
             switch (msg.what){
                 case WeatherConst.GET_LOCATION:
-                    String provinceName = Main2Activity.location[0];
+                    String provinceName = MainActivity.location[0];
                     Log.d(TAG, "handleMessage: "+provinceName);
                     queryProvince(provinceName);
                     break;
                 case WeatherConst.GET_PROVINCE:
-                    String cityName = Main2Activity.location[1];
+                    String cityName = MainActivity.location[1];
                     Log.d(TAG, "handleMessage: "+cityName);
                     queryCity(cityName);
                     break;
                 case WeatherConst.GET_CITY:
-                    String countyName = Main2Activity.location[2];
+                    String countyName = MainActivity.location[2];
                     Log.d(TAG, "handleMessage: "+countyName);
                     queryCounty(countyName);
                     break;
                 case WeatherConst.GET_COUNTY:
-                    requestWeather(selectedCounty.getWeatherId());
+                    Bundle data = msg.getData();
+                    String county = data.getString("countyName");
+                    Cursor cursor = db.query("county",null,"countyname = ?",
+                            new String[]{county},null,null,null);
+                    while (cursor.moveToNext()){
+                         weatherId = cursor.getString(cursor.getColumnIndex("weatherid"));
+                    }
+                    cursor.close();
+                    requestWeather(weatherId);
                     break;
             }
             return false;
@@ -92,13 +105,15 @@ public class Layout_frag extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        activity = (Main2Activity) context;
+        activity = (MainActivity) context;
         activity.setHandler(mHandler);
+        Log.d(TAG, "onAttach: 110");
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate: 116");
     }
 
     @Nullable
@@ -106,12 +121,14 @@ public class Layout_frag extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.layout_frag,container,false);
         initView(view);
+//        activity.notifyFragChanged();
+        Log.d(TAG, "onCreateView: 125");
         return view;
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-
+        db = AssetsUtils.getDataBase();
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
@@ -119,6 +136,7 @@ public class Layout_frag extends Fragment {
             }
         });
         super.onActivityCreated(savedInstanceState);
+        Log.d(TAG, "onActivityCreated: 139");
     }
 
     private void showWeatherInfo(final Weather weather) {
@@ -177,14 +195,15 @@ public class Layout_frag extends Fragment {
         carWashText = view.findViewById(R.id.car_wash_text);
         sportText = view.findViewById(R.id.sport_text);
         bingPic = view.findViewById(R.id.bing_pic);
-        prefs = PreferenceManager.getDefaultSharedPreferences(activity);
-        String bing_pic = prefs.getString("bing_pic",null);
+//        prefs = PreferenceManager.getDefaultSharedPreferences(activity);
+//        String bing_pic = prefs.getString("bing_pic",null);
+        String bing_pic = MainActivity.prefs.getString("bing_pic",null);
         if (bing_pic != null){
             Glide.with(this).load(bing_pic).into(bingPic);
         }else{
             loadBingPic();
         }
-        String weatherString = prefs.getString("weather",null);
+        String weatherString = MainActivity.prefs.getString("weather",null);
         if (weatherString != null){
             Weather weather = Utility.handleWeatherResponse(weatherString);
             weatherId_fresh = weather.basic.weatherId;
@@ -203,7 +222,7 @@ public class Layout_frag extends Fragment {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 final String responseText = response.body().string();
-                SharedPreferences.Editor editor = prefs.edit();
+                SharedPreferences.Editor editor = MainActivity.prefs.edit();
                 editor.putString("bing_pic",responseText);
                 editor.apply();
                 getActivity().runOnUiThread(new Runnable() {
@@ -217,6 +236,15 @@ public class Layout_frag extends Fragment {
     }
 
     private void queryProvince(String provinceName){
+        Cursor cursor = db.query("province",null,"provincename=?",
+                new String[]{provinceName},null,null,null);
+        if (cursor.moveToFirst()){
+            do {
+                String provinceCode = cursor.getString(cursor.getColumnIndex("provincecode"));
+            }while (cursor.moveToNext());
+        }
+        cursor.close();
+
         List<Province> provinceList = DataSupport.findAll(Province.class);
         if (provinceList.size() > 0){
             for (Province p:provinceList){
@@ -274,8 +302,8 @@ public class Layout_frag extends Fragment {
             String address = "http://guolin.tech/api/china/"+provinceCode+"/"+cityCode;
             queryFromServer(address,"county",countyName);
 
-            Intent intent2 = new Intent(getActivity(), InitService.class);
-            getActivity().startService(intent2);
+//            Intent intent2 = new Intent(getActivity(), InitService.class);
+//            getActivity().startService(intent2);
         }
     }
 
@@ -313,7 +341,7 @@ public class Layout_frag extends Fragment {
     }
 
     public void requestWeather(final String weatherId) {
-//        Main2Activity.weatherIdList.add(weatherId);
+//        MainActivity.weatherIdList.add(weatherId);
         String weatherUrl = "http://guolin.tech/api/weather?cityid="
                 +weatherId+"&key=1bd9697783404217b228bfd43d998b15";
         Log.d(TAG, "requestWeather: 314 executed");
@@ -338,7 +366,7 @@ public class Layout_frag extends Fragment {
                     @Override
                     public void run() {
                         if (weather != null && "ok".equals(weather.status)){
-                            SharedPreferences.Editor editor = prefs.edit();
+                            SharedPreferences.Editor editor = MainActivity.prefs.edit();
                             editor.putString("weather",responseText);
                             editor.apply();
                             showWeatherInfo(weather);
@@ -356,5 +384,11 @@ public class Layout_frag extends Fragment {
         Intent intent_update = new Intent(getActivity(), UpdateWeatherService.class);
         intent_update.putExtra("url_data",b);
         getActivity().startService(intent_update);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+//        activity.notifyFragChanged();
     }
 }

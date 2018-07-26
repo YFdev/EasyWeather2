@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.elapse.easyweather.customView.DrawerItemLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:id="@+id/root"
+    android:layout_height="30dp">
+    <TextView xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/id_content"
+        android:gravity="center_vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:textSize="@dimen/drawerTextSize">
+    </TextView>
+    <LinearLayout
+        android:layout_width="80dp"
+        android:id="@+id/id_options"
+        android:layout_height="match_parent">
+        <TextView
+            android:id="@+id/id_cancel"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textSize="@dimen/drawerTextSize"
+            android:layout_marginRight="5dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
+            android:background="@color/cancelBackground"
+            android:text="@string/itemCancel"/>
+        <TextView
+            android:layout_width="0dp"
+            android:id="@+id/id_delete"
+            android:layout_height="match_parent"
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:background="@color/deleteBackground"
+            android:textSize="@dimen/drawerTextSize"
+            android:text="@string/itemDelete"/>
+    </LinearLayout>
+</com.elapse.easyweather.customView.DrawerItemLayout>

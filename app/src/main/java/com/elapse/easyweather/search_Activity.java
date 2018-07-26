@@ -1,6 +1,8 @@
 package com.elapse.easyweather;
 
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -17,6 +19,7 @@ import android.widget.Toast;
 import com.elapse.easyweather.customView.CustomEditText;
 import com.elapse.easyweather.db.County;
 import com.elapse.easyweather.db.SearchHistory;
+import com.elapse.easyweather.utils.AssetsUtils;
 
 import org.litepal.LitePal;
 import org.litepal.crud.DataSupport;
@@ -36,6 +39,7 @@ public class search_Activity extends AppCompatActivity implements View.OnClickLi
     private List<String> historyList;
     private String[] hotCities = {"北京","上海","广州","深圳","西安","武汉","天津"};
     private ArrayAdapter<String> adapter;
+    SQLiteDatabase db;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -87,6 +91,7 @@ public class search_Activity extends AppCompatActivity implements View.OnClickLi
         btn_search.setOnClickListener(this);
         clear_history.setOnClickListener(this);
 
+        db = AssetsUtils.getDataBase();
     }
 
     @Override
@@ -120,17 +125,25 @@ public class search_Activity extends AppCompatActivity implements View.OnClickLi
             historyList.add(cityName);
             adapter.notifyDataSetChanged();
         }
-        List<County> countyList = DataSupport.where("countyName=?",cityName).find(County.class);
-        if (countyList.size() > 0){
-            String weatherId = countyList.get(0).getWeatherId().trim();
+        String weatherId = "";
+        Cursor cursor = db.query("county",null,"countyname = ?",
+                new String[]{cityName},null,null,null);
+        while (cursor.moveToNext()){
+             weatherId = cursor.getString(cursor.getColumnIndex("weatherid"));
+        }
+        cursor.close();
+//        List<County> countyList = DataSupport.where("countyName=?",cityName).find(County.class);
+//        if (countyList.size() > 0){
+//            String weatherId = countyList.get(0).getWeatherId().trim();
             Intent i = new Intent();
             i.putExtra("weatherId",weatherId);
+            i.putExtra("cityName",cityName);
             setResult(RESULT_OK,i);
             finish();
-        }else {
-            Toast.makeText(search_Activity.this,"initialize unfinished or input mistake",
-                    Toast.LENGTH_SHORT).show();
-        }
+//        }else {
+//            Toast.makeText(search_Activity.this,"initialize unfinished or input mistake",
+//                    Toast.LENGTH_SHORT).show();
+//        }
     }
     private void loadHistoryList(){
         historyList.clear();

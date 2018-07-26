@@ -10,23 +10,16 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
-import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
-import android.text.TextUtils;
 import android.util.Log;
-import android.widget.Toast;
 
-import com.elapse.easyweather.Main2Activity;
+import com.elapse.easyweather.MainActivity;
 import com.elapse.easyweather.R;
-import com.elapse.easyweather.db.County;
 import com.elapse.easyweather.gson.Weather;
 import com.elapse.easyweather.utils.HttpUtil;
 import com.elapse.easyweather.utils.Utility;
 
-import org.litepal.crud.DataSupport;
-
 import java.io.IOException;
-import java.util.List;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -91,7 +84,7 @@ public class UpdateWeatherService extends Service {
                     editor.putString("weather",responseText);
                     editor.apply();
                 }
-                Intent intent = new Intent(UpdateWeatherService.this,Main2Activity.class);
+                Intent intent = new Intent(UpdateWeatherService.this,MainActivity.class);
                 PendingIntent pi = PendingIntent.getActivity(UpdateWeatherService.this,
                         0,intent,0);
                 Notification notification = new NotificationCompat.Builder(UpdateWeatherService.this)

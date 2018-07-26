@@ -10,6 +10,16 @@ public class PagerList extends DataSupport {
     int id;
     int pageNum;
     String weatherId;
+    String cityName;
+
+    public String getCityName() {
+        return cityName;
+    }
+
+    public void setCityName(String cityName) {
+        this.cityName = cityName;
+    }
+
     public int getPageNum() {
         return pageNum;
     }

@@ -1,11 +1,8 @@
 package com.elapse.easyweather;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -21,21 +18,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
-import com.elapse.easyweather.db.City;
-import com.elapse.easyweather.db.County;
-import com.elapse.easyweather.db.Province;
 import com.elapse.easyweather.gson.Forecast;
 import com.elapse.easyweather.gson.Weather;
-import com.elapse.easyweather.service.InitService;
-import com.elapse.easyweather.service.UpdateWeatherService;
 import com.elapse.easyweather.utils.HttpUtil;
 import com.elapse.easyweather.utils.Utility;
-import com.elapse.easyweather.utils.WeatherConst;
-
-import org.litepal.crud.DataSupport;
 
 import java.io.IOException;
-import java.util.List;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -46,7 +34,7 @@ import okhttp3.Response;
  */
 //
 public class OtherFrag extends Fragment {
-    private static final String TAG = "Layout_frag";
+    private static final String TAG = "Other_frag";
     private ScrollView weatherLayout;
     private TextView title_city,titleUpdateTime,degreeText,weatherInfoText,
             aqiText,pm25Text,comfortText,carWashText,sportText;
@@ -58,24 +46,24 @@ public class OtherFrag extends Fragment {
 //    private City selectedCity;
 //    private County selectedCounty;
     private String weatherId_fresh;
-    SharedPreferences prefs;
-    private Main2Activity activity;
+//    SharedPreferences prefs;
+    private MainActivity activity;
 
 //    Handler mHandler = new Handler(new Handler.Callback() {
 //        @Override
 //        public boolean handleMessage(Message msg) {
 //            switch (msg.what){
 //                case WeatherConst.GET_LOCATION:
-//                    Log.d(TAG, "handleMessage: "+Main2Activity.location.toString());
-//                    String provinceName = Main2Activity.location[0];
+//                    Log.d(TAG, "handleMessage: "+MainActivity.location.toString());
+//                    String provinceName = MainActivity.location[0];
 //                    queryProvince(provinceName);
 //                    break;
 //                case WeatherConst.GET_PROVINCE:
-//                    String cityName = Main2Activity.location[1];
+//                    String cityName = MainActivity.location[1];
 //                    queryCity(cityName);
 //                    break;
 //                case WeatherConst.GET_CITY:
-//                    String countyName = Main2Activity.location[2];
+//                    String countyName = MainActivity.location[2];
 //                    queryCounty(countyName);
 //                    break;
 //                case WeatherConst.GET_COUNTY:
@@ -89,13 +77,14 @@ public class OtherFrag extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        activity = (Main2Activity) context;
-//        activity.setHandler(mHandler);
+        activity = (MainActivity) context;
+        Log.d(TAG, "onAttach: executed");
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d(TAG, "onCreate: executed");
     }
 
     @Nullable
@@ -103,6 +92,7 @@ public class OtherFrag extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.layout_frag,container,false);
         initView(view);
+        Log.d(TAG, "onCreateView: executed");
         return view;
     }
 
@@ -120,7 +110,7 @@ public class OtherFrag extends Fragment {
 
     private void showWeatherInfo(final Weather weather) {
         final String cityName = weather.basic.cityName;
-        getActivity().runOnUiThread(new Runnable() {
+        activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 title_city.setText(cityName);
@@ -174,15 +164,17 @@ public class OtherFrag extends Fragment {
         carWashText = view.findViewById(R.id.car_wash_text);
         sportText = view.findViewById(R.id.sport_text);
         bingPic = view.findViewById(R.id.bing_pic);
-        prefs = PreferenceManager.getDefaultSharedPreferences(activity);
-        String bing_pic = prefs.getString("bing_pic",null);
+//        prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+
+//        String bing_pic = prefs.getString("bing_pic",null);
+        String bing_pic = MainActivity.prefs.getString("bing_pic",null);
         if (bing_pic != null){
             Glide.with(this).load(bing_pic).into(bingPic);
         }else{
             loadBingPic();
         }
 
-        String weatherString = prefs.getString("weather"+weatherId_fresh,null);
+        String weatherString = MainActivity.prefs.getString("weather"+weatherId_fresh,null);
         if (weatherString != null){
             Weather weather = Utility.handleWeatherResponse(weatherString);
             weatherId_fresh = weather.basic.weatherId;
@@ -201,7 +193,7 @@ public class OtherFrag extends Fragment {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 final String responseText = response.body().string();
-                SharedPreferences.Editor editor = prefs.edit();
+                SharedPreferences.Editor editor = MainActivity.prefs.edit();
                 editor.putString("bing_pic",responseText);
                 editor.apply();
                 getActivity().runOnUiThread(new Runnable() {
@@ -306,15 +298,15 @@ public class OtherFrag extends Fragment {
 //    }
 
     public void requestWeather(final String weatherId) {
+        Log.d(TAG, "requestWeather: executed");
         weatherId_fresh = weatherId;
         String weatherUrl = "http://guolin.tech/api/weather?cityid="
                 +weatherId+"&key=1bd9697783404217b228bfd43d998b15";
-        Log.d(TAG, "requestWeather: 314 executed");
         HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
                 Log.d(TAG, "onFailure: requestWeather");
-                getActivity().runOnUiThread(new Runnable() {
+               activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         swipeRefresh.setRefreshing(false);
@@ -327,11 +319,11 @@ public class OtherFrag extends Fragment {
                 final String responseText = response.body().string();
 //                Log.d(TAG, "onResponse: "+responseText);
                 final Weather weather = Utility.handleWeatherResponse(responseText);
-                getActivity().runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
+//                activity.runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
                         if (weather != null && "ok".equals(weather.status)){
-                            SharedPreferences.Editor editor = prefs.edit();
+                            SharedPreferences.Editor editor = MainActivity.prefs.edit();
                             editor.putString("weather"+weatherId,responseText);
                             editor.apply();
                             showWeatherInfo(weather);
@@ -339,9 +331,17 @@ public class OtherFrag extends Fragment {
                             Toast.makeText(getContext(),
                                     "requestWeather failed",Toast.LENGTH_SHORT).show();
                         }
+
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
                         swipeRefresh.setRefreshing(false);
                     }
                 });
+//                        swipeRefresh.setRefreshing(false);
+
+//                    }
+//                });
             }
         });
 //        Bundle b = new Bundle();
@@ -351,11 +351,11 @@ public class OtherFrag extends Fragment {
 //        getActivity().startService(intent_update);
     }
 
-    public String getWeatherId_fresh() {
-        return weatherId_fresh;
-    }
-
-    public void setWeatherId_fresh(String weatherId_fresh) {
-        this.weatherId_fresh = weatherId_fresh;
-    }
+//    public String getWeatherId_fresh() {
+//        return weatherId_fresh;
+//    }
+//
+//    public void setWeatherId_fresh(String weatherId_fresh) {
+//        this.weatherId_fresh = weatherId_fresh;
+//    }
 }
