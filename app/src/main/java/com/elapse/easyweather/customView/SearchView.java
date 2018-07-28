@@ -8,7 +8,7 @@ import android.widget.LinearLayout;
 /**
  * Created by YF_lala on 2018/7/15.
  */
-
+@Deprecated
 public class SearchView extends LinearLayout{
     public SearchView(Context context) {
         super(context);

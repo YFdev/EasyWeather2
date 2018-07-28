@@ -15,6 +15,7 @@ import org.json.JSONObject;
 
 /**
  * Created by YF_lala on 2018/5/16.
+ * 工具类
  */
 
 public class Utility {

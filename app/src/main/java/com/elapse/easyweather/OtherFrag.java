@@ -48,6 +48,7 @@ public class OtherFrag extends Fragment {
     private String weatherId_fresh;
 //    SharedPreferences prefs;
     private MainActivity activity;
+    private String weatherId;
 
 //    Handler mHandler = new Handler(new Handler.Callback() {
 //        @Override
@@ -92,13 +93,14 @@ public class OtherFrag extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.layout_frag,container,false);
         initView(view);
+        weatherId = (String) getArguments().get("weatherId");
         Log.d(TAG, "onCreateView: executed");
         return view;
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-
+        requestWeather(weatherId);
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {

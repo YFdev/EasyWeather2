@@ -4,6 +4,7 @@ import org.litepal.crud.DataSupport;
 
 /**
  * Created by YF_lala on 2018/7/16.
+ * 保存搜索页面
  */
 
 public class SearchHistory extends DataSupport {

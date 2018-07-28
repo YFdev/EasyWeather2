@@ -36,6 +36,7 @@ import com.baidu.location.LocationClient;
 import com.baidu.location.LocationClientOption;
 import com.elapse.easyweather.Adapter.DrawerListAdapter;
 import com.elapse.easyweather.Adapter.MyPagerStateAdapter;
+import com.elapse.easyweather.customView.DrawerItemLayout;
 import com.elapse.easyweather.db.PagerList;
 import com.elapse.easyweather.utils.AssetsUtils;
 import com.elapse.easyweather.utils.WeatherConst;
@@ -47,7 +48,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener,
-        DrawerListAdapter.onItemOptionsClickListener {
+        DrawerListAdapter.onItemOptionsClickListener , DrawerLayout.DrawerListener{
     private static final String TAG = "MainActivity";
 
     public LocationClient mLocationClient;
@@ -65,10 +66,12 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     public static SharedPreferences prefs;
     private DrawerLayout mDrawLayout;
     private boolean isDrawerOpened;
-    private ListView cur_pager_list;
+    public ListView cur_pager_list;
     private List<String> cur_city_list;
-    private DrawerListAdapter drawerListAdapter;
+    public static DrawerListAdapter drawerListAdapter;
     private TextView cur_location;
+
+    public static MainActivity instance = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -92,6 +95,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                 startActivityForResult(intent,1);
             }
         });
+        mDrawLayout.addDrawerListener(this);
         drawerListAdapter = new DrawerListAdapter(this,R.layout.draweritems,cur_city_list);
         cur_pager_list.setAdapter(drawerListAdapter);
         drawerListAdapter.setOnItemOptionsClickListener(this);
@@ -101,17 +105,18 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 //
 //            }
 //        });
+        //加载之前搜索过的页面
         loadPageList();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-//        itemCount = 0;
+        instance = this;
     }
 
+    //初始化，加载主页-->当前位置页面
     private void init() {
-        // add homepage
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
         fragmentList = new ArrayList<>();
         Layout_frag frag1 = new Layout_frag();
@@ -160,12 +165,13 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                         pager.setCurrentItem(weatherIdList.indexOf(weatherId)+1,true);
                         return;
                     }
-
+                    //Pager中不足5项时直接添加
                     if (fragmentList.size() < MAX_PAGE_COUNT){
                         addPage(weatherId);
                         cur_city_list.add(cityName);
                         drawerListAdapter.notifyDataSetChanged();
                     }else{
+                        //设置Pager中页卡最多为5项，超过时替换最后一项
                         weatherIdList.remove(MAX_PAGE_COUNT-2);
                         weatherIdList.add(weatherId);
                         OtherFrag frag1 = (OtherFrag) fragmentList.get(MAX_PAGE_COUNT-1);
@@ -184,14 +190,17 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
     private void addPage(String weatherId) {
         OtherFrag frag = new OtherFrag();
-
+        Bundle b = new Bundle();
+        b.putString("weatherId",weatherId);
+        frag.setArguments(b);
         fragmentList.add(frag);
+        adapter.notifyDataSetChanged();
         weatherIdList.add(weatherId);
         View dot = new View(this);
         dot.setBackgroundResource(R.drawable.indicator_seletor);
         indicatorLayout.addView(dot,params);
-        adapter.notifyDataSetChanged();
-        frag.requestWeather(weatherId);
+
+//        frag.requestWeather(weatherId);
         Log.d(TAG, "addPage: 218-- "+fragmentList.size()+"--"+indicatorLayout.getChildCount());
         pager.setCurrentItem(fragmentList.size()-1,true);
     }
@@ -290,21 +299,26 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
     }
 
+    //以下三个方法在DrawerLayout子项点击时回调
+    //点击取消按钮
     @Override
-    public void onCancel(LinearLayout v2) {
+    public void onCancel(DrawerItemLayout v2) {
 //        点击归位
-//        ObjectAnimator.ofFloat(v1, "translationX", v1.getTranslationX(), 0).setDuration(600).start();
-        ObjectAnimator.ofFloat(v2, "translationX", v2.getTranslationX(), 0).setDuration(600).start();
+        ObjectAnimator.ofFloat(v2.getChildAt(1), "translationX",
+                v2.getTranslationX(), 0).setDuration(800).start();
+        v2.isOptionsShown = false;
     }
-
+    //点击删除按钮
     @Override
-    public void onDelete(View view, final int pos) {
+    public void onDelete(final DrawerItemLayout view, final int pos) {
+
         ObjectAnimator scaleY = ObjectAnimator.ofFloat(view, "scaleY", 1, 0);
         scaleY.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 cur_city_list.remove(pos);
+                drawerListAdapter.notifyDataSetChanged();
                 fragmentList.remove(pos + 1);
                 weatherIdList.remove(pos);
                 adapter.notifyDataSetChanged();
@@ -316,11 +330,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
             }
         });
         scaleY.setDuration(200).start();
-
-        drawerListAdapter.notifyDataSetChanged();
-
     }
-
+    //点击List子项
     @Override
     public void onContentChoose(String cityName) {
         List<PagerList> l = DataSupport.where("cityName=?",cityName).find(PagerList.class);
@@ -332,6 +343,51 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         }
     }
 
+    @Override
+    public void onDrawerSlide(View drawerView, float slideOffset) {
+
+    }
+
+    @Override
+    public void onDrawerOpened(View drawerView) {
+        //重新加载DrawerLayout子项，避免覆盖问题
+        Log.d(TAG, "onDrawerOpened: executed");
+        savePageList();
+//        loadPagerList();
+    }
+
+//    private void loadPagerList() {
+//        cur_city_list.clear();
+//        final List<PagerList> pagerSave = DataSupport.findAll(PagerList.class);
+//        if (pagerSave.size()>0) {
+//            for (PagerList pl : pagerSave) {
+//                cur_city_list.add(pl.getCityName());
+//            }
+//        }
+//        Log.d(TAG, "loadPagerList: executed "+cur_city_list.size());
+//        drawerListAdapter.notifyDataSetChanged();
+//    }
+
+    @Override
+    public void onDrawerClosed(View drawerView) {
+        //关闭选项卡时保存数据，
+        Log.d(TAG, "onDrawerClosed: executed");
+        for (int i = 0;i<cur_city_list.size();i++){
+            DrawerItemLayout d = (DrawerItemLayout) cur_pager_list.getChildAt(i);
+            if (d.isOptionsShown){
+                this.onCancel(d);
+            }
+        }
+
+        WeatherConst.currentIndex = -1;
+        WeatherConst.oldIndex = -1;
+    }
+
+    @Override
+    public void onDrawerStateChanged(int newState) {
+
+    }
+
     public class mBDAbstractLocationListener extends BDAbstractLocationListener{
         private String cur_city,cur_province,cur_county;
         @Override
@@ -340,7 +396,6 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
             cur_city = bdLocation.getCity();
             cur_county = bdLocation.getDistrict();
             Log.d(TAG, "onReceiveLocation: "+cur_province+" "+cur_city+" "+cur_county);
-//           title_city.setText(cur_city);
             if (TextUtils.isEmpty(cur_province) || TextUtils.isEmpty(cur_city)
                     || TextUtils.isEmpty(cur_county)){
                 cur_province = "广东";
@@ -352,10 +407,6 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
             location[2] = cur_county;
             cur_location.setText(cur_county);
 
-//            if (! initialDb){
-//                Intent intent2 = new Intent(MainActivity.this, InitService.class);
-//            startService(intent2);
-//            }
             Log.d(TAG, "onReceiveLocation: "+location[0]+" "+location[1]+" "+location[2]);
             Message msg0 = new Message();
             Bundle b = new Bundle();
@@ -370,10 +421,6 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         mHandler = handler;
     }
 
-    public void notifyFragChanged(){
-        adapter.notifyDataSetChanged();
-    }
-
     private void savePageList(){
         DataSupport.deleteAll(PagerList.class);
        if (weatherIdList.size()>0){
@@ -386,35 +433,16 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
            }
        }
     }
-
+    //启动时加载
     private void loadPageList(){
         weatherIdList.clear();
         final List<PagerList> pagerSave = DataSupport.findAll(PagerList.class);
         if (pagerSave.size()>0){
-//            List<OtherFrag> frags = new ArrayList<>();
-//           new Thread(new Runnable() {
-//               @Override
-//               public void run() {
-//                   for (PagerList pl : pagerSave){
-//                       OtherFrag frag = new OtherFrag();
-//                       fragmentList.add(frag);
-//                       weatherIdList.add(pl.getWeatherId());
-//                       cur_city_list.add(pl.getCityName());
-//                       View dot = new View(MainActivity.this);
-//                       dot.setBackgroundResource(R.drawable.indicator_seletor);
-//                       dot.setEnabled(false);
-//                       indicatorLayout.addView(dot,params);
-//
-//                       frag.requestWeather(pl.getWeatherId());
-//                       adapter.notifyDataSetChanged();
-//                   }
-////                   adapter.notifyDataSetChanged();
-//                   drawerListAdapter.notifyDataSetChanged();
-//                   pager.setCurrentItem(0);
-//               }
-//           }).start();
             for (PagerList pl : pagerSave){
                 OtherFrag frag = new OtherFrag();
+                Bundle b = new Bundle();
+                b.putString("weatherId",pl.getWeatherId());
+                frag.setArguments(b);
                 fragmentList.add(frag);
                 adapter.notifyDataSetChanged();
                 weatherIdList.add(pl.getWeatherId());
@@ -423,7 +451,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                 dot.setBackgroundResource(R.drawable.indicator_seletor);
                 dot.setEnabled(false);
                 indicatorLayout.addView(dot,params);
-                frag.requestWeather(pl.getWeatherId());
+//                frag.requestWeather(pl.getWeatherId());
+
             }
 //                   adapter.notifyDataSetChanged();
             drawerListAdapter.notifyDataSetChanged();
@@ -432,12 +461,11 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     }
 
     public void openList(View view) {
-        drawerListAdapter.notifyDataSetChanged();
-        savePageList();
         mDrawLayout.openDrawer(GravityCompat.END);
+//        drawerListAdapter.notifyDataSetChanged();
         isDrawerOpened = true;
     }
-
+//第一次安装程序时将Assets目录的数据库文件copy到databases中
     private void copyData(){
         AssetsUtils utils = new AssetsUtils(this);
         try {
@@ -454,6 +482,20 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
             isDrawerOpened = false;
         }else {
             finish();
+        }
+    }
+
+    public void setSingleOption(){
+        int index = WeatherConst.oldIndex;
+        for (int i = 0;i<cur_city_list.size();i++){
+            DrawerItemLayout d = (DrawerItemLayout) cur_pager_list.getChildAt(i);
+            if (d.isOptionsShown && i != index){
+                WeatherConst.currentIndex = i;
+                if (WeatherConst.oldIndex > -1 &&((DrawerItemLayout) cur_pager_list.getChildAt(index)).isOptionsShown){
+                    onCancel((DrawerItemLayout) cur_pager_list.getChildAt(index));
+                }
+                WeatherConst.oldIndex = WeatherConst.currentIndex;
+            }
         }
     }
 }

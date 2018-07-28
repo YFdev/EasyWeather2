@@ -11,6 +11,7 @@ import com.elapse.easyweather.R;
 
 /**
  * Created by YF_lala on 2018/7/15.
+ * 自定义带图片的搜索栏
  */
 
 public class CustomEditText extends AppCompatEditText {

@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Created by YF_lala on 2018/7/10.
  */
-
+@Deprecated
 public class MyPagerAdapter extends PagerAdapter {
 
     private List<View> views;

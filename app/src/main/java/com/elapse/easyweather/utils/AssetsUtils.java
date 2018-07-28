@@ -16,6 +16,7 @@ import java.io.OutputStream;
 
 /**
  * Created by YF_lala on 2018/7/24.
+ * 该类用于copy Assets中准备好的数据库文件，并提供打开方法
  */
 
 public class AssetsUtils extends SQLiteOpenHelper{

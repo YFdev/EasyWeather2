@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">EasyWeather</string>
+    <string name="app_name">易测风云</string>
     <string name="search_btn">搜索</string>
     <string name="current_city">当前城市</string>
     <string name="hint">--</string>

@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Created by YF_lala on 2018/7/10.
  */
-
+@Deprecated
 public class MyFragmentAdapter extends FragmentPagerAdapter {
 
     private List<Fragment> fragmentList;

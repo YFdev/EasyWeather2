@@ -10,13 +10,16 @@ import android.view.View;
 import android.view.ViewParent;
 import android.widget.LinearLayout;
 
+import com.elapse.easyweather.MainActivity;
+
 /**
  * Created by YF_lala on 2018/7/21.
+ * override intercepted & ontouchevent of drawer_list item
  */
 
 public class DrawerItemLayout extends LinearLayout {
     private static final String TAG = "DrawerItemLayout";
-
+    public boolean isOptionsShown = false;
     private int max;
     public DrawerItemLayout(Context context) {
         super(context);
@@ -51,6 +54,7 @@ public class DrawerItemLayout extends LinearLayout {
                 int dx = x - mLastInterceptX ;
                 int dy = y - mLastInterceptY ;
                 Log.d(TAG, "onInterceptTouchEvent: "+dx+" "+dy);
+                //设置拦截条件
                 if ( Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > dip2px(getContext(),20) && dx < 0){
                     ViewParent parent = getParent();
                     parent.getParent().requestDisallowInterceptTouchEvent(true);
@@ -109,9 +113,12 @@ public class DrawerItemLayout extends LinearLayout {
                 if (deltaX < -max / 2) {
                     ObjectAnimator.ofFloat(v, "translationX",
                             deltaX, -max).setDuration(300).start();
+                    isOptionsShown = true;
+                    MainActivity.instance.setSingleOption();
                 } else {
                     ObjectAnimator.ofFloat(v, "translationX",
                             deltaX, 0).setDuration(300).start();
+                    isOptionsShown = false;
                 }
                 break;
             }
@@ -124,4 +131,5 @@ public class DrawerItemLayout extends LinearLayout {
     public boolean performClick() {
         return super.performClick();
     }
+
 }

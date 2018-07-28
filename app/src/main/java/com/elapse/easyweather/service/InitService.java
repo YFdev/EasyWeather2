@@ -23,7 +23,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
-
+@Deprecated
 public class InitService extends Service {
     private static final String TAG = "InitService";
     ExecutorService executor ;

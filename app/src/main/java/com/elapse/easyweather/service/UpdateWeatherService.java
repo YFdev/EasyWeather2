@@ -24,7 +24,7 @@ import java.io.IOException;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
-
+//定时任务，前台服务
 public class UpdateWeatherService extends Service {
     private static final String TAG = "UpdateWeatherService";
     public UpdateWeatherService() {

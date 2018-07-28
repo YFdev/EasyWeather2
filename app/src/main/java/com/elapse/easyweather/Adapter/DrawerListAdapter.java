@@ -1,21 +1,21 @@
 package com.elapse.easyweather.Adapter;
 
-import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.elapse.easyweather.MainActivity;
 import com.elapse.easyweather.R;
 import com.elapse.easyweather.customView.DrawerItemLayout;
+import com.elapse.easyweather.utils.WeatherConst;
 
 import java.util.List;
 
@@ -28,8 +28,6 @@ public class DrawerListAdapter extends ArrayAdapter<String> {
 
     private int resourceId;
     private onItemOptionsClickListener listener;
-    private int mLastX ;
-    private int deltaX ;
 
     public DrawerListAdapter(@NonNull Context context, int resource, @NonNull List<String> objects) {
         super(context, resource, objects);
@@ -50,7 +48,7 @@ public class DrawerListAdapter extends ArrayAdapter<String> {
     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
         final String cityName = getItem(position);
         final int pos = position;
-        View view;
+        final View view;
         final ViewHolder holder;
         if (convertView == null){
             view = LayoutInflater.from(getContext()).inflate(resourceId,parent,false);
@@ -70,13 +68,14 @@ public class DrawerListAdapter extends ArrayAdapter<String> {
         holder.tv_cancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                listener.onCancel(holder.options);
+                listener.onCancel(holder.root);
+
             }
         });
         holder.tv_delete.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                listener.onDelete(holder.root, pos);
+                listener.onDelete((DrawerItemLayout) view, pos);
             }
         });
 
@@ -87,6 +86,18 @@ public class DrawerListAdapter extends ArrayAdapter<String> {
                 listener.onContentChoose(cityName);
             }
         });
+
+//        if (holder.root.isOptionsShown){
+//            int old_index = WeatherConst.optionsItemIndex;
+//            WeatherConst.optionsItemIndex = position;
+//            if (old_index > 0 && old_index != WeatherConst.optionsItemIndex){
+//                DrawerItemLayout view1 = (DrawerItemLayout) MainActivity.cur_pager_list.getChildAt(old_index);
+//                closeOptions(view1);
+//
+//            }
+//        }
+
+
 //        holder.root.setOnTouchListener(new View.OnTouchListener() {
 //            View view = holder.options;
 //            int max = view.getMeasuredWidth()+10;
@@ -121,9 +132,10 @@ public class DrawerListAdapter extends ArrayAdapter<String> {
         return view;
     }
 
+    //回调接口
     public interface onItemOptionsClickListener{
-        void onCancel(LinearLayout v2);
-        void onDelete(View view,int pos);
+        void onCancel(DrawerItemLayout v2);
+        void onDelete(DrawerItemLayout view,int pos);
         void onContentChoose(String cityName);
     }
 

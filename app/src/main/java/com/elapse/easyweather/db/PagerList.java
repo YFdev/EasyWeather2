@@ -4,6 +4,7 @@ import org.litepal.crud.DataSupport;
 
 /**
  * Created by YF_lala on 2018/7/16.
+ * 保存DrawerLayout数据
  */
 
 public class PagerList extends DataSupport {
