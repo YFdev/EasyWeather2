@@ -34,52 +34,51 @@ public class DrawerListAdapter extends ArrayAdapter<String> {
         resourceId = resource;
     }
 
-    class ViewHolder{
-        TextView tv_cancel;
-        TextView tv_delete;
-        TextView tv_content;
-        DrawerItemLayout root;
-        LinearLayout options;
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
+//    class ViewHolder{
+//        TextView tv_cancel;
+//        TextView tv_delete;
+//        TextView tv_content;
+//        DrawerItemLayout root;
+//        LinearLayout options;
+//    }
+    //在此方法中不使用ViewHolder，原因是view复用会导致view的动画效果保存，造成pagerList的item不显示内容
+    @SuppressLint({"ClickableViewAccessibility", "ViewHolder"})
     @NonNull
     @Override
     public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-        final String cityName = getItem(position);
-        final int pos = position;
-        final View view;
-        final ViewHolder holder;
-        if (convertView == null){
-            view = LayoutInflater.from(getContext()).inflate(resourceId,parent,false);
-            holder = new ViewHolder();
-            holder.root = view.findViewById(R.id.root);
-            holder.tv_content = view.findViewById(R.id.id_content);
-            holder.tv_cancel = view.findViewById(R.id.id_cancel);
-            holder.tv_delete = view.findViewById(R.id.id_delete);
-            holder.options = view.findViewById(R.id.id_options);
-            view.setTag(holder);
-        }else {
-            view = convertView;
-            holder = (ViewHolder) view.getTag();
-        }
-        holder.tv_content.setText(cityName);
+         final String cityName = getItem(position);
+         final int pos = position;
+         View view;
+//        final ViewHolder holder;
+//        if (convertView == null){
+        view = LayoutInflater.from(getContext()).inflate(resourceId,parent,false);
+//            holder = new ViewHolder();
+            final DrawerItemLayout root = view.findViewById(R.id.root);
+            TextView tv_content = view.findViewById(R.id.id_content);
+            TextView tv_cancel = view.findViewById(R.id.id_cancel);
+            TextView tv_delete = view.findViewById(R.id.id_delete);
+            LinearLayout options = view.findViewById(R.id.id_options);
+//            view.setTag(holder);
+//        }else {
+//            view = convertView;
+//            holder = (ViewHolder) view.getTag();
+//        }
+        tv_content.setText(cityName);
 
-        holder.tv_cancel.setOnClickListener(new View.OnClickListener() {
+        tv_cancel.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                listener.onCancel(holder.root);
-
+                listener.onCancel(root);
             }
         });
-        holder.tv_delete.setOnClickListener(new View.OnClickListener() {
+        tv_delete.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                listener.onDelete((DrawerItemLayout) view, pos);
+                listener.onDelete(root, pos);
             }
         });
 
-        holder.tv_content.setOnClickListener(new View.OnClickListener() {
+        tv_content.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.d(TAG, "onClick: execute");

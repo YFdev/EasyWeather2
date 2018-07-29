@@ -24,6 +24,9 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.Response;
 @Deprecated
+//该service用于获取所有省市天气信息并保存，但是运行期间会导致第一次启动时APP执行任务太多
+//用法是作为工具类运行一次，获取所有信息后将出具库文件导出到Assets目录，APP运行时将数据库文件拷贝到
+//databases目录中即可
 public class InitService extends Service {
     private static final String TAG = "InitService";
     ExecutorService executor ;

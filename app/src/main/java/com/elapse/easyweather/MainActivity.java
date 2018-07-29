@@ -50,42 +50,58 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener,
         DrawerListAdapter.onItemOptionsClickListener , DrawerLayout.DrawerListener{
     private static final String TAG = "MainActivity";
-
+    //使用百度定位
     public LocationClient mLocationClient;
+    //用于存放从百度定位获取的省市区信息（可以不使用，懒得改）
     public static String[] location = new String[3];
+    //用于获取位置信息后刷新主页Fragment
     private Handler mHandler;
+    //用于展示天气信息及增减页面
     private ViewPager pager;
     private MyPagerStateAdapter adapter;
     private List<Fragment> fragmentList;
+    //用于记录页面指示器index
     public static int itemCount;
+    //页面指示器布局
     private LinearLayout indicatorLayout;
     private LinearLayout.LayoutParams params;
+    //搜索按钮
     private FloatingActionButton fab;
+    //存放viewpager下所有页面的天气id
     private List<String> weatherIdList;
+    //设置viewpager最多容纳页面个数
     public static final int MAX_PAGE_COUNT = 5;
+    //用于存放背景图片以及天气信息
     public static SharedPreferences prefs;
+    //侧滑显示当前列表
     private DrawerLayout mDrawLayout;
+    //flag标记drawer是否处于打开状态
     private boolean isDrawerOpened;
+    //viewpager侧滑页面中的listview
     public ListView cur_pager_list;
     private List<String> cur_city_list;
     public static DrawerListAdapter drawerListAdapter;
+    //当前城市名称
     private TextView cur_location;
 
     public static MainActivity instance = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //设置页面顶部与背景融合
         if (Build.VERSION.SDK_INT >= 21){
             View decoView = getWindow().getDecorView();
             decoView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
             View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
             getWindow().setStatusBarColor(Color.TRANSPARENT);
         }
+        //初始化百度location
         mLocationClient = new LocationClient(getApplicationContext());
         mLocationClient.registerLocationListener(new mBDAbstractLocationListener());
 //        requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_main);
         init();
+        //请求权限
         requestPermission();
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -95,9 +111,11 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                 startActivityForResult(intent,1);
             }
         });
+        //监听drawerlayout的状态
         mDrawLayout.addDrawerListener(this);
         drawerListAdapter = new DrawerListAdapter(this,R.layout.draweritems,cur_city_list);
         cur_pager_list.setAdapter(drawerListAdapter);
+        //为drawerlayout每一项注册监听器
         drawerListAdapter.setOnItemOptionsClickListener(this);
 //        cur_pager_list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 //            @Override
@@ -105,6 +123,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 //
 //            }
 //        });
+
         //加载之前搜索过的页面
         loadPageList();
     }
@@ -117,16 +136,19 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
     //初始化，加载主页-->当前位置页面
     private void init() {
+        //初始化sharedpreference
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        //在onCreate中先加载当前主页
         fragmentList = new ArrayList<>();
         Layout_frag frag1 = new Layout_frag();
         fragmentList.add(frag1);
         pager = findViewById(R.id.pager);
         pager.addOnPageChangeListener(this);
+        //设置最大缓存页面
         pager.setOffscreenPageLimit(4);
         adapter = new MyPagerStateAdapter(getSupportFragmentManager(),fragmentList);
         pager.setAdapter(adapter);
-        //add homepage indicator
+        //加载页面指示器
         indicatorLayout = findViewById(R.id.indicator);
         View locate = new View(this);
         locate.setBackgroundResource(R.drawable.homepage_seletor);
@@ -134,14 +156,17 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         params = new LinearLayout.LayoutParams(10,10);
         params.rightMargin = 5;
         indicatorLayout.addView(locate,params);
+
         weatherIdList = new ArrayList<>();
         fab = findViewById(R.id.fab);
-
+        //初始化drawerlayout
         mDrawLayout = findViewById(R.id.myDrawerLayout);
         cur_pager_list = findViewById(R.id.cur_pager_list);
         cur_city_list = new ArrayList<>();
         cur_location = findViewById(R.id.cur_location);
+        //初始化数据库-->存放历史搜索记录和当前所有页面
         LitePal.getDatabase();
+        //拷贝Assets中准备好的数据库文件
         copyData();
     }
 
@@ -150,8 +175,10 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         switch (requestCode){
             case 1:
                 if (resultCode == RESULT_OK){
+                    //搜索页面返回的数据
                     String weatherId = data.getStringExtra("weatherId");
                     String cityName = data.getStringExtra("cityName");
+                    //清空后重新加载，避免位置错乱
                     weatherIdList.clear();
                     cur_city_list.clear();
                     List<PagerList> pagerSave = DataSupport.findAll(PagerList.class);
@@ -161,6 +188,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                             cur_city_list.add(pl.getCityName());
                         }
                     }
+                    //如果viewpager中已经包含该项，直接跳到该项
                     if (weatherIdList.contains(weatherId)){
                         pager.setCurrentItem(weatherIdList.indexOf(weatherId)+1,true);
                         return;
@@ -175,6 +203,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                         weatherIdList.remove(MAX_PAGE_COUNT-2);
                         weatherIdList.add(weatherId);
                         OtherFrag frag1 = (OtherFrag) fragmentList.get(MAX_PAGE_COUNT-1);
+
                         frag1.requestWeather(weatherId);
                         adapter.notifyDataSetChanged();
                         pager.setCurrentItem(fragmentList.size()-1,true);
@@ -187,7 +216,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                 break;
         }
     }
-
+    //页卡不足5个时添加页卡和指示器，并设置最新添加的页面为当前页面
     private void addPage(String weatherId) {
         OtherFrag frag = new OtherFrag();
         Bundle b = new Bundle();
@@ -204,7 +233,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         Log.d(TAG, "addPage: 218-- "+fragmentList.size()+"--"+indicatorLayout.getChildCount());
         pager.setCurrentItem(fragmentList.size()-1,true);
     }
-
+    //一次请求所有危险权限
     private void requestPermission() {
         List<String> permissionList = new ArrayList<>();
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)!=
@@ -226,12 +255,12 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
             requestLocation();
         }
     }
-
+    //请求位置
     private void requestLocation() {
         initialLocation();
         mLocationClient.start();
     }
-
+    //初始化baiduLocation
     private void initialLocation() {
         LocationClientOption option = new LocationClientOption();
         option.setScanSpan(600000);
@@ -271,6 +300,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     @Override
     protected void onPause() {
         super.onPause();
+        //页面被遮挡即保存数据，确保数据有效性
         savePageList();
     }
 
@@ -288,6 +318,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
     @Override
     public void onPageSelected(int position) {
+        //此方法用于更新指示器小点的状态
         indicatorLayout.getChildAt(itemCount).setEnabled(false);
         Log.d(TAG, "addPage: 538-- "+position);
         indicatorLayout.getChildAt(position).setEnabled(true);
@@ -310,26 +341,26 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     }
     //点击删除按钮
     @Override
-    public void onDelete(final DrawerItemLayout view, final int pos) {
-
-        ObjectAnimator scaleY = ObjectAnimator.ofFloat(view, "scaleY", 1, 0);
+    public void onDelete(final DrawerItemLayout view, int pos) {
+        final int position = pos;
+        final ObjectAnimator scaleY = ObjectAnimator.ofFloat(view, "scaleY", 1, 0);
         scaleY.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
-                cur_city_list.remove(pos);
+                cur_city_list.remove(position);
                 drawerListAdapter.notifyDataSetChanged();
-                fragmentList.remove(pos + 1);
-                weatherIdList.remove(pos);
+                fragmentList.remove(position + 1);
+                weatherIdList.remove(position);
                 adapter.notifyDataSetChanged();
-                pager.setCurrentItem(pos,true);
-
-                indicatorLayout.removeViewAt(pos + 1);
-                indicatorLayout.getChildAt(pos).setEnabled(true);
+                pager.setCurrentItem(position,true);
+                indicatorLayout.removeViewAt(position + 1);
+                indicatorLayout.getChildAt(position).setEnabled(true);
                 mDrawLayout.closeDrawer(GravityCompat.END);
+//                ObjectAnimator.ofFloat(view, "scaleY", 0, 1).setDuration(50).start();
             }
         });
-        scaleY.setDuration(200).start();
+        scaleY.setDuration(500).start();
     }
     //点击List子项
     @Override
@@ -350,23 +381,19 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
     @Override
     public void onDrawerOpened(View drawerView) {
-        //重新加载DrawerLayout子项，避免覆盖问题
+        //save data while drawer open to avoid data mismatch
         Log.d(TAG, "onDrawerOpened: executed");
         savePageList();
-//        loadPagerList();
-    }
-
-//    private void loadPagerList() {
 //        cur_city_list.clear();
 //        final List<PagerList> pagerSave = DataSupport.findAll(PagerList.class);
-//        if (pagerSave.size()>0) {
-//            for (PagerList pl : pagerSave) {
+//        if (pagerSave.size()>0){
+//            for (PagerList pl : pagerSave){
 //                cur_city_list.add(pl.getCityName());
 //            }
+//            drawerListAdapter.notifyDataSetChanged();
 //        }
-//        Log.d(TAG, "loadPagerList: executed "+cur_city_list.size());
-//        drawerListAdapter.notifyDataSetChanged();
-//    }
+
+    }
 
     @Override
     public void onDrawerClosed(View drawerView) {
@@ -417,10 +444,12 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         }
     }
 
+    //在主页的fragment中获取handler
     public void setHandler(Handler handler){
         mHandler = handler;
     }
 
+    //保存状态
     private void savePageList(){
         DataSupport.deleteAll(PagerList.class);
        if (weatherIdList.size()>0){
@@ -460,6 +489,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         }
     }
 
+    //Clickable方法
     public void openList(View view) {
         mDrawLayout.openDrawer(GravityCompat.END);
 //        drawerListAdapter.notifyDataSetChanged();
@@ -485,6 +515,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         }
     }
 
+    //drawerlayout的listview中，保证一次只能有一项可以滑动展示“删除”按钮
     public void setSingleOption(){
         int index = WeatherConst.oldIndex;
         for (int i = 0;i<cur_city_list.size();i++){

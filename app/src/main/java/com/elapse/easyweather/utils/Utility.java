@@ -20,6 +20,7 @@ import org.json.JSONObject;
 
 public class Utility {
     private static final String TAG = "MainActivity";
+    //解析省信息并保存-------未使用
     public static boolean handleProvinceResponse(String response){
         if (!TextUtils.isEmpty(response)){
             try {
@@ -40,7 +41,7 @@ public class Utility {
         return false;
     }
 
-
+    //解析省会城市信息并保存-----未使用
     public static boolean handleCityResponse(String response ,int provinceId){
         if (!TextUtils.isEmpty(response)){
             try {
@@ -63,6 +64,7 @@ public class Utility {
         return false;
     }
 
+    //解析城市信息并保存数据库-------未使用
     public static boolean handleCountyResponse(String response,int cityId){
         if (!TextUtils.isEmpty(response)){
             try {
@@ -82,7 +84,7 @@ public class Utility {
         }
         return false;
     }
-
+    //解析返回的天气信息（json）成为weather对象
     public static Weather handleWeatherResponse(String response){
         try {
             JSONObject weatherObject = new JSONObject(response);

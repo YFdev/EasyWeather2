@@ -35,20 +35,21 @@ import okhttp3.Response;
 //
 public class OtherFrag extends Fragment {
     private static final String TAG = "Other_frag";
+    //主布局
     private ScrollView weatherLayout;
     private TextView title_city,titleUpdateTime,degreeText,weatherInfoText,
             aqiText,pm25Text,comfortText,carWashText,sportText;
     private LinearLayout forecastLayout;
+    //下拉刷新布局
     public SwipeRefreshLayout swipeRefresh;
+    //背景图片
     ImageView bingPic;
-
-//    private Province selectedProvince;
-//    private City selectedCity;
-//    private County selectedCounty;
+    //用于保存weatherID，下拉刷新时使用
     private String weatherId_fresh;
-//    SharedPreferences prefs;
     private MainActivity activity;
     private String weatherId;
+    //标记位，当页面数大于5时会直接调用requestWeather（），使用该标记位避免onCreateView()中调用之前数据
+    private boolean isRequestExecuted = false;
 
 //    Handler mHandler = new Handler(new Handler.Callback() {
 //        @Override
@@ -93,6 +94,7 @@ public class OtherFrag extends Fragment {
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.layout_frag,container,false);
         initView(view);
+        //获取MainActivity中new fragment setArgument（）中的值
         weatherId = (String) getArguments().get("weatherId");
         Log.d(TAG, "onCreateView: executed");
         return view;
@@ -100,7 +102,10 @@ public class OtherFrag extends Fragment {
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
-        requestWeather(weatherId);
+        //发起http请求
+        if (!isRequestExecuted){
+            requestWeather(weatherId);
+        }
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
@@ -112,6 +117,7 @@ public class OtherFrag extends Fragment {
 
     private void showWeatherInfo(final Weather weather) {
         final String cityName = weather.basic.cityName;
+        //主线程刷新view
         activity.runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -137,7 +143,7 @@ public class OtherFrag extends Fragment {
                     forecastLayout.addView(view);
                 }
                 if (weather.aqi != null){
-                    aqiText.setText(weather.aqi.city.aqi);
+                   aqiText.setText(weather.aqi.city.aqi);
                     pm25Text.setText(weather.aqi.city.pm25);
                 }
                 String comfort = "舒适度："+weather.suggestion.comfort.info;
@@ -166,16 +172,14 @@ public class OtherFrag extends Fragment {
         carWashText = view.findViewById(R.id.car_wash_text);
         sportText = view.findViewById(R.id.sport_text);
         bingPic = view.findViewById(R.id.bing_pic);
-//        prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-
-//        String bing_pic = prefs.getString("bing_pic",null);
+        //检查是否有本地图片缓存
         String bing_pic = MainActivity.prefs.getString("bing_pic",null);
         if (bing_pic != null){
             Glide.with(this).load(bing_pic).into(bingPic);
         }else{
             loadBingPic();
         }
-
+        //检查是否有本地天气信息查询，prefs中存放的key值与weatherID关联
         String weatherString = MainActivity.prefs.getString("weather"+weatherId_fresh,null);
         if (weatherString != null){
             Weather weather = Utility.handleWeatherResponse(weatherString);
@@ -300,6 +304,7 @@ public class OtherFrag extends Fragment {
 //    }
 
     public void requestWeather(final String weatherId) {
+        isRequestExecuted = true;
         Log.d(TAG, "requestWeather: executed");
         weatherId_fresh = weatherId;
         String weatherUrl = "http://guolin.tech/api/weather?cityid="
@@ -340,24 +345,7 @@ public class OtherFrag extends Fragment {
                         swipeRefresh.setRefreshing(false);
                     }
                 });
-//                        swipeRefresh.setRefreshing(false);
-
-//                    }
-//                });
             }
         });
-//        Bundle b = new Bundle();
-//        b.putString("weatherUrl",weatherUrl);
-//        Intent intent_update = new Intent(getActivity(), UpdateWeatherService.class);
-//        intent_update.putExtra("url_data",b);
-//        getActivity().startService(intent_update);
     }
-
-//    public String getWeatherId_fresh() {
-//        return weatherId_fresh;
-//    }
-//
-//    public void setWeatherId_fresh(String weatherId_fresh) {
-//        this.weatherId_fresh = weatherId_fresh;
-//    }
 }

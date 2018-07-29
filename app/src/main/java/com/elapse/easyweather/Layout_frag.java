@@ -46,6 +46,7 @@ import okhttp3.Response;
 
 /**
  * Created by YF_lala on 2018/7/10.
+ * 主页面布局，内容与OtherFrag相同，由于实现方法改变，导致很多方法是不需要的，此Fragment可以用OtherFrag代替
  */
 //
 public class Layout_frag extends Fragment {
@@ -66,7 +67,7 @@ public class Layout_frag extends Fragment {
     private MainActivity activity;
     private SQLiteDatabase db;
     private String weatherId;
-
+    //从Mainactivity获取handler，用于发送网络请求状态信息，从而完成相关方法调用
     Handler mHandler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
@@ -86,6 +87,7 @@ public class Layout_frag extends Fragment {
                     Log.d(TAG, "handleMessage: "+countyName);
                     queryCounty(countyName);
                     break;
+                    //在MainActivity定位成功之后，获取城市名称，在数据库中检查对应的weatherID
                 case WeatherConst.GET_COUNTY:
                     Bundle data = msg.getData();
                     String county = data.getString("countyName");
@@ -234,7 +236,7 @@ public class Layout_frag extends Fragment {
             }
         });
     }
-
+    //未使用
     private void queryProvince(String provinceName){
         Cursor cursor = db.query("province",null,"provincename=?",
                 new String[]{provinceName},null,null,null);
@@ -262,7 +264,7 @@ public class Layout_frag extends Fragment {
 
         }
     }
-
+    //未使用
     private void queryCity(String cityName){
         List<City> cityList = DataSupport.where("provinceid = ?",
                 String.valueOf(selectedProvince.getProvinceCode())).find(City.class);
@@ -282,7 +284,7 @@ public class Layout_frag extends Fragment {
             queryFromServer(address,"city",cityName);
         }
     }
-
+    //未使用
     private void queryCounty(String countyName){
         List<County> countyList = DataSupport.where("cityid=?",String.valueOf(selectedCity.getCityCode())).find(County.class);
         if (countyList.size() > 0){
@@ -306,7 +308,7 @@ public class Layout_frag extends Fragment {
 //            getActivity().startService(intent2);
         }
     }
-
+    //数据库中查询不到信息后从网络查询，未使用
     private void queryFromServer(String address, final String type,final String name) {
 //        showProgressDialog();
         HttpUtil.sendOkHttpRequest(address, new Callback() {

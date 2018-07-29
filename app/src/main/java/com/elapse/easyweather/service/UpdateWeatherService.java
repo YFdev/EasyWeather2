@@ -88,7 +88,7 @@ public class UpdateWeatherService extends Service {
                 PendingIntent pi = PendingIntent.getActivity(UpdateWeatherService.this,
                         0,intent,0);
                 Notification notification = new NotificationCompat.Builder(UpdateWeatherService.this)
-                        .setContentTitle("EasyWeather")
+                        .setContentTitle("易测风云")
                         .setContentText(weather != null ? (weather.basic.cityName+"  "+" "+weather.now.more.info
                                 +" "+"  当前气温："+
                                 weather.now.temputure+"℃"): "-- : -- : --")

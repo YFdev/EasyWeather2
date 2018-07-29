@@ -30,13 +30,16 @@ import java.util.List;
 public class search_Activity extends AppCompatActivity implements View.OnClickListener{
 
     private ImageView goBack;
+    //搜索栏
     private CustomEditText customEditText;
     private Button btn_search;
     private TextView current_city;
     private GridView hot_city;
     private ListView search_history;
     private Button clear_history;
+    //历史列表
     private List<String> historyList;
+    //初始化热门城市
     private String[] hotCities = {"北京","上海","广州","深圳","西安","武汉","天津"};
     private ArrayAdapter<String> adapter;
     SQLiteDatabase db;
@@ -119,7 +122,7 @@ public class search_Activity extends AppCompatActivity implements View.OnClickLi
         super.onBackPressed();
         finish();
     }
-
+    //从搜索栏获取搜索信息，返回给MainActivity
     private void feedBackData(String cityName) {
         if (!historyList.contains(cityName)){
             historyList.add(cityName);
@@ -145,6 +148,7 @@ public class search_Activity extends AppCompatActivity implements View.OnClickLi
 //                    Toast.LENGTH_SHORT).show();
 //        }
     }
+    //从数据库加载历史记录
     private void loadHistoryList(){
         historyList.clear();
 //        adapter.notifyDataSetChanged();
@@ -157,7 +161,7 @@ public class search_Activity extends AppCompatActivity implements View.OnClickLi
         }
         adapter.notifyDataSetChanged();
     }
-
+    //保存历史记录
     private void saveHistoryList(){
         DataSupport.deleteAll(SearchHistory.class);
         for (int i = 0;i<historyList.size();i++){

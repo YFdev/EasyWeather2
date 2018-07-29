@@ -7,6 +7,7 @@ import android.widget.LinearLayout;
 
 /**
  * Created by YF_lala on 2018/7/15.
+ * //封装搜索页面，未完成
  */
 @Deprecated
 public class SearchView extends LinearLayout{
